@@ -84,4 +84,4 @@ namespace SocialNetworkGraph.App.Data
             return g;
         }
     }
-}
+}// Refactored by Sadik Gunay 
