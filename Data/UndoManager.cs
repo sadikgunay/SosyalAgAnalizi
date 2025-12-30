@@ -42,4 +42,4 @@ namespace SocialNetworkGraph.App.Data
             return new FileManager().LoadGraphFromJsonString(json);
         }
     }
-}
+}// Refactored by Sadik Gunay 
