@@ -23,4 +23,4 @@ namespace SocialNetworkGraph.App.Algorithms.Concrete
                                    .ToDictionary(x => x.Key, x => x.Value);
         }
     }
-}
+}// Updated by Atakan Cetli 
