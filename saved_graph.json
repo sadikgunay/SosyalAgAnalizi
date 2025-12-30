@@ -1,0 +1,124 @@
+{
+  "Nodes": [
+    {
+      "Id": "DugumId",
+      "Name": "DugumId",
+      "Activity": 0,
+      "Interaction": 0,
+      "ConnectionCount": 0
+    },
+    {
+      "Id": "Ali",
+      "Name": "Ali",
+      "Activity": 0.9,
+      "Interaction": 150,
+      "ConnectionCount": 5
+    },
+    {
+      "Id": "Ay\u015Fe",
+      "Name": "Ay\u015Fe",
+      "Activity": 0.8,
+      "Interaction": 120,
+      "ConnectionCount": 4
+    },
+    {
+      "Id": "Mehmet",
+      "Name": "Mehmet",
+      "Activity": 0.7,
+      "Interaction": 80,
+      "ConnectionCount": 3
+    },
+    {
+      "Id": "Zeynep",
+      "Name": "Zeynep",
+      "Activity": 0.85,
+      "Interaction": 100,
+      "ConnectionCount": 4
+    },
+    {
+      "Id": "Can",
+      "Name": "Can",
+      "Activity": 0.6,
+      "Interaction": 60,
+      "ConnectionCount": 2
+    },
+    {
+      "Id": "Elif",
+      "Name": "Elif",
+      "Activity": 0.75,
+      "Interaction": 90,
+      "ConnectionCount": 3
+    },
+    {
+      "Id": "Burak",
+      "Name": "Burak",
+      "Activity": 0.65,
+      "Interaction": 70,
+      "ConnectionCount": 2
+    },
+    {
+      "Id": "Selin",
+      "Name": "Selin",
+      "Activity": 0.8,
+      "Interaction": 110,
+      "ConnectionCount": 4
+    },
+    {
+      "Id": "Sado",
+      "Name": "Sado",
+      "Activity": 0.5,
+      "Interaction": 5,
+      "ConnectionCount": 0
+    }
+  ],
+  "Edges": [
+    {
+      "Source": "Ali",
+      "Target": "Ay\u015Fe"
+    },
+    {
+      "Source": "Ali",
+      "Target": "Mehmet"
+    },
+    {
+      "Source": "Ali",
+      "Target": "Zeynep"
+    },
+    {
+      "Source": "Ali",
+      "Target": "Sado"
+    },
+    {
+      "Source": "Ay\u015Fe",
+      "Target": "Zeynep"
+    },
+    {
+      "Source": "Ay\u015Fe",
+      "Target": "Can"
+    },
+    {
+      "Source": "Mehmet",
+      "Target": "Elif"
+    },
+    {
+      "Source": "Zeynep",
+      "Target": "Elif"
+    },
+    {
+      "Source": "Zeynep",
+      "Target": "Burak"
+    },
+    {
+      "Source": "Elif",
+      "Target": "Selin"
+    },
+    {
+      "Source": "Burak",
+      "Target": "Selin"
+    },
+    {
+      "Source": "Selin",
+      "Target": "Sado"
+    }
+  ]
+}
