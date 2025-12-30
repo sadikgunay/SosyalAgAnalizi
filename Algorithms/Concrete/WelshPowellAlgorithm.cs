@@ -95,3 +95,4 @@ namespace SocialNetworkGraph.App.Algorithms.Concrete
         }
     }
 }
+// Refactored by Atakan Cetli 
