@@ -31,4 +31,4 @@ namespace SocialNetworkGraph.App.Algorithms.Concrete
             return components;
         }
     }
-}
+}// Updated by Atakan Cetli 
