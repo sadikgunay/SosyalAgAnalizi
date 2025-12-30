@@ -1,0 +1,360 @@
+{
+  "Nodes": [
+    {
+      "Id": "Kullan\u0131c\u0131_1",
+      "Name": "Kullan\u0131c\u0131_1",
+      "Activity": 0.63,
+      "Interaction": 488,
+      "ConnectionCount": 2
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_2",
+      "Name": "Kullan\u0131c\u0131_2",
+      "Activity": 0.16,
+      "Interaction": 326,
+      "ConnectionCount": 3
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_3",
+      "Name": "Kullan\u0131c\u0131_3",
+      "Activity": 0.48,
+      "Interaction": 229,
+      "ConnectionCount": 0
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_4",
+      "Name": "Kullan\u0131c\u0131_4",
+      "Activity": 0.94,
+      "Interaction": 191,
+      "ConnectionCount": 2
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_5",
+      "Name": "Kullan\u0131c\u0131_5",
+      "Activity": 0.01,
+      "Interaction": 473,
+      "ConnectionCount": 2
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_6",
+      "Name": "Kullan\u0131c\u0131_6",
+      "Activity": 0.14,
+      "Interaction": 20,
+      "ConnectionCount": 2
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_7",
+      "Name": "Kullan\u0131c\u0131_7",
+      "Activity": 0.24,
+      "Interaction": 423,
+      "ConnectionCount": 3
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_8",
+      "Name": "Kullan\u0131c\u0131_8",
+      "Activity": 0.45,
+      "Interaction": 445,
+      "ConnectionCount": 0
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_9",
+      "Name": "Kullan\u0131c\u0131_9",
+      "Activity": 0.34,
+      "Interaction": 408,
+      "ConnectionCount": 1
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_10",
+      "Name": "Kullan\u0131c\u0131_10",
+      "Activity": 0.13,
+      "Interaction": 372,
+      "ConnectionCount": 1
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_11",
+      "Name": "Kullan\u0131c\u0131_11",
+      "Activity": 0.01,
+      "Interaction": 350,
+      "ConnectionCount": 1
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_12",
+      "Name": "Kullan\u0131c\u0131_12",
+      "Activity": 0.98,
+      "Interaction": 265,
+      "ConnectionCount": 3
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_13",
+      "Name": "Kullan\u0131c\u0131_13",
+      "Activity": 0.62,
+      "Interaction": 353,
+      "ConnectionCount": 1
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_14",
+      "Name": "Kullan\u0131c\u0131_14",
+      "Activity": 0.97,
+      "Interaction": 349,
+      "ConnectionCount": 1
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_15",
+      "Name": "Kullan\u0131c\u0131_15",
+      "Activity": 0.92,
+      "Interaction": 166,
+      "ConnectionCount": 1
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_16",
+      "Name": "Kullan\u0131c\u0131_16",
+      "Activity": 0.4,
+      "Interaction": 66,
+      "ConnectionCount": 1
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_17",
+      "Name": "Kullan\u0131c\u0131_17",
+      "Activity": 0.68,
+      "Interaction": 343,
+      "ConnectionCount": 1
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_18",
+      "Name": "Kullan\u0131c\u0131_18",
+      "Activity": 0.81,
+      "Interaction": 53,
+      "ConnectionCount": 1
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_19",
+      "Name": "Kullan\u0131c\u0131_19",
+      "Activity": 0.88,
+      "Interaction": 73,
+      "ConnectionCount": 1
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_20",
+      "Name": "Kullan\u0131c\u0131_20",
+      "Activity": 0.23,
+      "Interaction": 153,
+      "ConnectionCount": 2
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_21",
+      "Name": "Kullan\u0131c\u0131_21",
+      "Activity": 0.02,
+      "Interaction": 146,
+      "ConnectionCount": 2
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_22",
+      "Name": "Kullan\u0131c\u0131_22",
+      "Activity": 0.18,
+      "Interaction": 331,
+      "ConnectionCount": 1
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_23",
+      "Name": "Kullan\u0131c\u0131_23",
+      "Activity": 0.18,
+      "Interaction": 373,
+      "ConnectionCount": 0
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_24",
+      "Name": "Kullan\u0131c\u0131_24",
+      "Activity": 0.47,
+      "Interaction": 486,
+      "ConnectionCount": 4
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_25",
+      "Name": "Kullan\u0131c\u0131_25",
+      "Activity": 0.66,
+      "Interaction": 481,
+      "ConnectionCount": 1
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_26",
+      "Name": "Kullan\u0131c\u0131_26",
+      "Activity": 0.53,
+      "Interaction": 166,
+      "ConnectionCount": 2
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_27",
+      "Name": "Kullan\u0131c\u0131_27",
+      "Activity": 0.71,
+      "Interaction": 438,
+      "ConnectionCount": 1
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_28",
+      "Name": "Kullan\u0131c\u0131_28",
+      "Activity": 0.1,
+      "Interaction": 101,
+      "ConnectionCount": 1
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_29",
+      "Name": "Kullan\u0131c\u0131_29",
+      "Activity": 0.24,
+      "Interaction": 7,
+      "ConnectionCount": 3
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_30",
+      "Name": "Kullan\u0131c\u0131_30",
+      "Activity": 0.54,
+      "Interaction": 58,
+      "ConnectionCount": 2
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_31",
+      "Name": "Kullan\u0131c\u0131_31",
+      "Activity": 0.45,
+      "Interaction": 442,
+      "ConnectionCount": 3
+    },
+    {
+      "Id": "Kullan\u0131c\u0131_32",
+      "Name": "Kullan\u0131c\u0131_32",
+      "Activity": 0.05,
+      "Interaction": 220,
+      "ConnectionCount": 3
+    }
+  ],
+  "Edges": [
+    {
+      "Source": "Kullan\u0131c\u0131_1",
+      "Target": "Kullan\u0131c\u0131_22",
+      "Weight": 158.0038
+    },
+    {
+      "Source": "Kullan\u0131c\u0131_1",
+      "Target": "Kullan\u0131c\u0131_32",
+      "Weight": 269.0025
+    },
+    {
+      "Source": "Kullan\u0131c\u0131_2",
+      "Target": "Kullan\u0131c\u0131_6",
+      "Weight": 307.0016
+    },
+    {
+      "Source": "Kullan\u0131c\u0131_2",
+      "Target": "Kullan\u0131c\u0131_19",
+      "Weight": 254.0089
+    },
+    {
+      "Source": "Kullan\u0131c\u0131_2",
+      "Target": "Kullan\u0131c\u0131_24",
+      "Weight": 161.0034
+    },
+    {
+      "Source": "Kullan\u0131c\u0131_4",
+      "Target": "Kullan\u0131c\u0131_26",
+      "Weight": 26.0034
+    },
+    {
+      "Source": "Kullan\u0131c\u0131_4",
+      "Target": "Kullan\u0131c\u0131_31",
+      "Weight": 252.0025
+    },
+    {
+      "Source": "Kullan\u0131c\u0131_5",
+      "Target": "Kullan\u0131c\u0131_10",
+      "Weight": 102.005
+    },
+    {
+      "Source": "Kullan\u0131c\u0131_5",
+      "Target": "Kullan\u0131c\u0131_20",
+      "Weight": 321.0001
+    },
+    {
+      "Source": "Kullan\u0131c\u0131_6",
+      "Target": "Kullan\u0131c\u0131_17",
+      "Weight": 324.002
+    },
+    {
+      "Source": "Kullan\u0131c\u0131_7",
+      "Target": "Kullan\u0131c\u0131_9",
+      "Weight": 16.1331
+    },
+    {
+      "Source": "Kullan\u0131c\u0131_7",
+      "Target": "Kullan\u0131c\u0131_21",
+      "Weight": 278.0019
+    },
+    {
+      "Source": "Kullan\u0131c\u0131_7",
+      "Target": "Kullan\u0131c\u0131_32",
+      "Weight": 204.0001
+    },
+    {
+      "Source": "Kullan\u0131c\u0131_11",
+      "Target": "Kullan\u0131c\u0131_24",
+      "Weight": 137.0339
+    },
+    {
+      "Source": "Kullan\u0131c\u0131_12",
+      "Target": "Kullan\u0131c\u0131_13",
+      "Weight": 89.0235
+    },
+    {
+      "Source": "Kullan\u0131c\u0131_12",
+      "Target": "Kullan\u0131c\u0131_30",
+      "Weight": 208.0029
+    },
+    {
+      "Source": "Kullan\u0131c\u0131_12",
+      "Target": "Kullan\u0131c\u0131_32",
+      "Weight": 46.0096
+    },
+    {
+      "Source": "Kullan\u0131c\u0131_14",
+      "Target": "Kullan\u0131c\u0131_31",
+      "Weight": 94.023
+    },
+    {
+      "Source": "Kullan\u0131c\u0131_15",
+      "Target": "Kullan\u0131c\u0131_27",
+      "Weight": 273.0001
+    },
+    {
+      "Source": "Kullan\u0131c\u0131_16",
+      "Target": "Kullan\u0131c\u0131_28",
+      "Weight": 36.0013
+    },
+    {
+      "Source": "Kullan\u0131c\u0131_18",
+      "Target": "Kullan\u0131c\u0131_24",
+      "Weight": 434.0105
+    },
+    {
+      "Source": "Kullan\u0131c\u0131_20",
+      "Target": "Kullan\u0131c\u0131_31",
+      "Weight": 290.0018
+    },
+    {
+      "Source": "Kullan\u0131c\u0131_21",
+      "Target": "Kullan\u0131c\u0131_29",
+      "Weight": 140.0038
+    },
+    {
+      "Source": "Kullan\u0131c\u0131_24",
+      "Target": "Kullan\u0131c\u0131_25",
+      "Weight": 6.834
+    },
+    {
+      "Source": "Kullan\u0131c\u0131_26",
+      "Target": "Kullan\u0131c\u0131_29",
+      "Weight": 160.0034
+    },
+    {
+      "Source": "Kullan\u0131c\u0131_29",
+      "Target": "Kullan\u0131c\u0131_30",
+      "Weight": 52.0107
+    }
+  ]
+}
