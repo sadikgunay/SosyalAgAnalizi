@@ -193,4 +193,4 @@ namespace SocialNetworkGraph.App.Data
             return GetAllBackups().Count;
         }
     }
-}
+}// Refactored by Sadik Gunay 
