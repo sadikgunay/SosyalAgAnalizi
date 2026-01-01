@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
@@ -36,10 +36,21 @@ namespace SocialNetworkGraph.App
         private GraphVisualizer _visualizer;
         private UndoManager _undoManager;
         private Data.BackupManager _backupManager;
-
+        private List<PerformanceLog> _performanceHistory = new List<PerformanceLog>();
         private DispatcherTimer _simTimer;
         private List<string> _infectedNodeIds;
         private Random _rnd = new Random();
+        private void RecordPerformance(string name, double ms, string complexity)
+        {
+            _performanceHistory.Add(new PerformanceLog
+            {
+                AlgorithmName = name,
+                NodeCount = _myGraph.Nodes.Count,
+                EdgeCount = _myGraph.Edges.Count,
+                ExecutionTimeMs = ms,
+                Complexity = complexity
+            });
+        }
 
         public MainWindow()
         {
@@ -282,13 +293,30 @@ namespace SocialNetworkGraph.App
         private void TxtSearch_KeyDown(object sender, System.Windows.Input.KeyEventArgs e) { if (e.Key == System.Windows.Input.Key.Enter) PerformSearch(); }
 
         // Analizler
-        private void BtnLinkPrediction_Click(object sender, RoutedEventArgs e) { var sw = Stopwatch.StartNew(); var s = new LinkPredictionAlgorithm().Execute(_myGraph); sw.Stop(); ShowLegend("ÖNERİLER", (s.Count > 0 ? string.Join("\n", s) : "Yok") + $"\n{GetElapsedTime(sw)}"); }
-        private void BtnBetweenness_Click(object sender, RoutedEventArgs e) { var sw = Stopwatch.StartNew(); var r = new BetweennessCentralityAlgorithm().Execute(_myGraph); sw.Stop(); ResetVisuals(); int c = 0; foreach (var kv in r) { if (c++ >= 3) break; var n = _viewer.Graph.FindNode(kv.Key.Id); if (n != null) { n.Attr.Shape = Shape.Diamond; n.Attr.FillColor = MsaglColor.Magenta; } } _viewer.Graph = _viewer.Graph; ShowLegend("KÖPRÜLER", string.Join("\n", r.Take(3).Select(x => $"{x.Key.Name} ({x.Value})")) + $"\n{GetElapsedTime(sw)}"); }
+        private void BtnLinkPrediction_Click(object sender, RoutedEventArgs e)
+        {
+            var sw = Stopwatch.StartNew();
+            var s = new LinkPredictionAlgorithm().Execute(_myGraph);
+            sw.Stop();
+            RecordPerformance("AI Link Prediction", sw.Elapsed.TotalMilliseconds, "O(V^2)");
+            ShowLegend("ÖNERİLER", (s.Count > 0 ? string.Join("\n", s) : "Yok") + $"\n{GetElapsedTime(sw)}");
+        }
+        private void BtnBetweenness_Click(object sender, RoutedEventArgs e)
+        {
+            var sw = Stopwatch.StartNew();
+            var r = new BetweennessCentralityAlgorithm().Execute(_myGraph);
+            sw.Stop();
+            RecordPerformance("Betweenness Centrality", sw.Elapsed.TotalMilliseconds, "O(V * E)");
+            ResetVisuals();
+            int c = 0; foreach (var kv in r) { if (c++ >= 3) break; var n = _viewer.Graph.FindNode(kv.Key.Id); if (n != null) { n.Attr.Shape = Shape.Diamond; n.Attr.FillColor = MsaglColor.Magenta; } }
+            _viewer.Graph = _viewer.Graph; ShowLegend("KÖPRÜLER", string.Join("\n", r.Take(3).Select(x => $"{x.Key.Name} ({x.Value})")) + $"\n{GetElapsedTime(sw)}");
+        }
         private void BtnAnalysis_Click(object sender, RoutedEventArgs e)
         {
             var sw = Stopwatch.StartNew();
             var results = new DegreeCentralityAlgorithm().Execute(_myGraph);
             sw.Stop();
+            RecordPerformance("Degree Centrality", sw.Elapsed.TotalMilliseconds, "O(V)");
 
             ResetVisuals();
             foreach (var item in results)
@@ -309,12 +337,21 @@ namespace SocialNetworkGraph.App
 
             ShowLegend("DEGREE CENTRALITY", tableText);
         }
-        private void BtnComponents_Click(object sender, RoutedEventArgs e) { var sw = Stopwatch.StartNew(); var c = new ConnectedComponentsAlgorithm().Execute(_myGraph); sw.Stop(); ResetVisuals(); Random r = new Random(); foreach (var l in c) { var col = new MsaglColor((byte)r.Next(255), (byte)r.Next(255), (byte)r.Next(255)); foreach (var n in l) { var vn = _viewer.Graph.FindNode(n.Id); if (vn != null) vn.Attr.FillColor = col; } } _viewer.Graph = _viewer.Graph; ShowLegend("TOPLULUK", $"Grup: {c.Count}\n{GetElapsedTime(sw)}"); }
+        private void BtnComponents_Click(object sender, RoutedEventArgs e)
+        {
+            var sw = Stopwatch.StartNew();
+            var c = new ConnectedComponentsAlgorithm().Execute(_myGraph);
+            sw.Stop();
+            RecordPerformance("Connected Components", sw.Elapsed.TotalMilliseconds, "O(V + E)");
+            ResetVisuals(); Random r = new Random(); foreach (var l in c) { var col = new MsaglColor((byte)r.Next(255), (byte)r.Next(255), (byte)r.Next(255)); foreach (var n in l) { var vn = _viewer.Graph.FindNode(n.Id); if (vn != null) vn.Attr.FillColor = col; } }
+            _viewer.Graph = _viewer.Graph; ShowLegend("TOPLULUK", $"Grup: {c.Count}\n{GetElapsedTime(sw)}");
+        }
         private void BtnWelshPowell_Click(object sender, RoutedEventArgs e)
         {
             var sw = Stopwatch.StartNew();
             var coloring = new WelshPowellAlgorithm().Execute(_myGraph);
             sw.Stop();
+            RecordPerformance("Welsh-Powell Coloring", sw.Elapsed.TotalMilliseconds, "O(V^2 + VE)");
 
             ResetVisuals();
             foreach (var item in coloring)
@@ -341,14 +378,68 @@ namespace SocialNetworkGraph.App
         // Algoritmalar
         private void RunAlgo(IGraphAlgorithm alg, string name, MsaglColor color)
         {
-            var s = _myGraph.Nodes.FirstOrDefault(x => x.Id == TxtSource.Text); var t = _myGraph.Nodes.FirstOrDefault(x => x.Id == TxtTarget.Text);
-            if (s == null || t == null) return; var sw = Stopwatch.StartNew(); var p = alg.Execute(_myGraph, s, t); sw.Stop();
-            if (p.Count > 0) { ResetVisuals(); foreach (var n in p) { var vn = _viewer.Graph.FindNode(n.Id); if (vn != null) vn.Attr.FillColor = color; } for (int i = 0; i < p.Count - 1; i++) { var u = p[i].Id; var v = p[i + 1].Id; var ed = _viewer.Graph.Edges.FirstOrDefault(x => (x.Source == u && x.Target == v) || (x.Source == v && x.Target == u)); if (ed != null) ed.Attr.Color = color; } _viewer.Graph = _viewer.Graph; ShowLegend(name, $"Adım: {p.Count - 1}\nMaliyet: {CalculatePathCost(p):F2}\n{GetElapsedTime(sw)}"); } else WpfMsgBox.Show("Yol yok.");
+            var s = _myGraph.Nodes.FirstOrDefault(x => x.Id == TxtSource.Text);
+            var t = _myGraph.Nodes.FirstOrDefault(x => x.Id == TxtTarget.Text);
+            if (s == null || t == null) return;
+
+            // --- ÖLÇÜM BAŞLADI ---
+            var sw = Stopwatch.StartNew();
+            var p = alg.Execute(_myGraph, s, t);
+            sw.Stop();
+            // ---------------------
+
+            // LOGGER KAYDI: Karmaşıklığı isme göre seçiyoruz
+            string complexity = (name == "Dijkstra") ? "O((V + E) log V)" : "O(E)";
+            RecordPerformance(name, sw.Elapsed.TotalMilliseconds, complexity);
+
+            if (p.Count > 0)
+            {
+                // Mevcut çizim kodun...
+                ResetVisuals();
+                foreach (var n in p)
+                {
+                    var vn = _viewer.Graph.FindNode(n.Id);
+                    if (vn != null) vn.Attr.FillColor = color;
+                }
+                for (int i = 0; i < p.Count - 1; i++)
+                {
+                    var u = p[i].Id; var v = p[i + 1].Id;
+                    var ed = _viewer.Graph.Edges.FirstOrDefault(x => (x.Source == u && x.Target == v) || (x.Source == v && x.Target == u));
+                    if (ed != null) ed.Attr.Color = color;
+                }
+                _viewer.Graph = _viewer.Graph;
+                ShowLegend(name, $"Adım: {p.Count - 1}\nMaliyet: {CalculatePathCost(p):F2}\n{GetElapsedTime(sw)}");
+            }
+            else WpfMsgBox.Show("Yol yok.");
         }
         private void BtnRunDijkstra_Click(object sender, RoutedEventArgs e) => RunAlgo(new DijkstraAlgorithm(), "Dijkstra", MsaglColor.Red);
         private void BtnRunAStar_Click(object sender, RoutedEventArgs e) => RunAlgo(new AStarAlgorithm(), "A*", MsaglColor.Orange);
-        private void BtnRunBFS_Click(object sender, RoutedEventArgs e) { var s = _myGraph.Nodes.FirstOrDefault(n => n.Id == TxtSource.Text); if (s != null) { var sw = Stopwatch.StartNew(); var r = new BFSAlgorithm().Execute(_myGraph, s); sw.Stop(); ResetVisuals(); foreach (var n in r) { var vn = _viewer.Graph.FindNode(n.Id); if (vn != null) vn.Attr.FillColor = MsaglColor.LightGreen; } _viewer.Graph = _viewer.Graph; ShowLegend("BFS", $"Erişilen: {r.Count}\n{GetElapsedTime(sw)}"); } }
-        private void BtnRunDFS_Click(object sender, RoutedEventArgs e) { var s = _myGraph.Nodes.FirstOrDefault(n => n.Id == TxtSource.Text); if (s != null) { var sw = Stopwatch.StartNew(); var r = new DFSAlgorithm().Execute(_myGraph, s); sw.Stop(); ResetVisuals(); foreach (var n in r) { var vn = _viewer.Graph.FindNode(n.Id); if (vn != null) vn.Attr.FillColor = MsaglColor.LightBlue; } _viewer.Graph = _viewer.Graph; ShowLegend("DFS", $"Erişilen: {r.Count}\n{GetElapsedTime(sw)}"); } }
+        private void BtnRunBFS_Click(object sender, RoutedEventArgs e)
+        {
+            var s = _myGraph.Nodes.FirstOrDefault(n => n.Id == TxtSource.Text);
+            if (s != null)
+            {
+                var sw = Stopwatch.StartNew();
+                var r = new BFSAlgorithm().Execute(_myGraph, s);
+                sw.Stop();
+                RecordPerformance("BFS Search", sw.Elapsed.TotalMilliseconds, "O(V + E)");
+                ResetVisuals(); foreach (var n in r) { var vn = _viewer.Graph.FindNode(n.Id); if (vn != null) vn.Attr.FillColor = MsaglColor.LightGreen; }
+                _viewer.Graph = _viewer.Graph; ShowLegend("BFS", $"Erişilen: {r.Count}\n{GetElapsedTime(sw)}");
+            }
+        }
+        private void BtnRunDFS_Click(object sender, RoutedEventArgs e)
+        {
+            var s = _myGraph.Nodes.FirstOrDefault(n => n.Id == TxtSource.Text);
+            if (s != null)
+            {
+                var sw = Stopwatch.StartNew();
+                var r = new DFSAlgorithm().Execute(_myGraph, s);
+                sw.Stop();
+                RecordPerformance("DFS Search", sw.Elapsed.TotalMilliseconds, "O(V + E)");
+                ResetVisuals(); foreach (var n in r) { var vn = _viewer.Graph.FindNode(n.Id); if (vn != null) vn.Attr.FillColor = MsaglColor.LightBlue; }
+                _viewer.Graph = _viewer.Graph; ShowLegend("DFS", $"Erişilen: {r.Count}\n{GetElapsedTime(sw)}");
+            }
+        }
 
         // Diğer
         private string GetElapsedTime(Stopwatch sw) => sw.Elapsed.TotalMilliseconds < 0.1 ? $"{sw.ElapsedTicks} Ticks" : $"{sw.Elapsed.TotalMilliseconds:F4} ms";
@@ -482,6 +573,25 @@ namespace SocialNetworkGraph.App
             }
             sb.AppendLine("</table>");
             sb.AppendLine("</div>");
+
+            // --- YENİ EKLENEN PERFORMANS BÖLÜMÜ ---
+            sb.AppendLine("<div class='section'>");
+            sb.AppendLine("<h2>Teknik Analiz ve Performans Kayıtları (Benchmark)</h2>");
+            sb.AppendLine("<table>");
+            sb.AppendLine("<tr><th>İşlem/Algoritma</th><th>Düğüm/Kenar</th><th>Süre (ms)</th><th>Teorik Karmaşıklık</th></tr>");
+
+            foreach (var log in _performanceHistory)
+            {
+                sb.AppendLine($"<tr>" +
+                              $"<td>{log.AlgorithmName}</td>" +
+                              $"<td>{log.NodeCount} D / {log.EdgeCount} K</td>" +
+                              $"<td>{log.ExecutionTimeMs:F4} ms</td>" +
+                              $"<td>{log.Complexity}</td>" +
+                              $"</tr>");
+            }
+            sb.AppendLine("</table>");
+            sb.AppendLine("</div>");
+            // --------------------------------------
 
             sb.AppendLine("</body>");
             sb.AppendLine("</html>");
