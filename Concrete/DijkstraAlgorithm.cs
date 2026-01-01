@@ -6,81 +6,88 @@ using SocialNetworkGraph.App.Core;
 
 namespace SocialNetworkGraph.App.Algorithms.Concrete
 {
-	public class DijkstraAlgorithm : IGraphAlgorithm
-	{
-		public List<Node> Execute(Graph graph, Node startNode, Node endNode = null)
-		{
-			if (endNode == null) return new List<Node>();
+    public class DijkstraAlgorithm : IGraphAlgorithm
+    {
+        public List<Node> Execute(Graph graph, Node startNode, Node endNode)
+        {
+            // Performans için Dictionary ve HashSet kullanımı
+            var distances = new Dictionary<Node, double>();
+            var previous = new Dictionary<Node, Node>();
+            var unvisited = new HashSet<Node>();
 
-			// 1. Hazırlık
-			var distances = new Dictionary<string, double>();
-			var previous = new Dictionary<string, Node>();
-			var nodesQueue = new List<Node>();
+            // 1. Başlangıç Durumu
+            foreach (var node in graph.Nodes)
+            {
+                distances[node] = double.MaxValue;
+                unvisited.Add(node);
+            }
+            distances[startNode] = 0;
 
-			foreach (var node in graph.Nodes)
-			{
-				if (node.Id == startNode.Id)
-					distances[node.Id] = 0;
-				else
-					distances[node.Id] = double.MaxValue;
+            // 2. Ana Döngü
+            while (unvisited.Count > 0)
+            {
+                // En küçük mesafeli düğümü bul (Manuel PriorityQueue mantığı)
+                Node current = null;
+                double minDist = double.MaxValue;
 
-				nodesQueue.Add(node);
-			}
+                foreach (var node in unvisited)
+                {
+                    if (distances[node] < minDist)
+                    {
+                        minDist = distances[node];
+                        current = node;
+                    }
+                }
 
-			// 2. Arama Döngüsü
-			while (nodesQueue.Count > 0)
-			{
-				// Mesafesi en küçük olanı seç
-				nodesQueue.Sort((x, y) => distances[x.Id].CompareTo(distances[y.Id]));
-				Node current = nodesQueue[0];
-				nodesQueue.RemoveAt(0);
+                // Hedef bulunduysa veya gidilecek yol kalmadıysa dur
+                if (current == null || current.Id == endNode.Id) break;
+                if (minDist == double.MaxValue) break;
 
-				if (current.Id == endNode.Id) break; // Hedefe vardık
-				if (distances[current.Id] == double.MaxValue) break; // Ulaşılabilir yol kalmadı
+                unvisited.Remove(current);
 
-				// Komşuları gez (Yönsüz graf için her iki yönü de kontrol et)
-				foreach (var edge in graph.Edges)
-				{
-					Node neighbor = null;
-					// Bu düğümden çıkan kenarlara bak
-					if (edge.Source.Id == current.Id)
-					{
-						neighbor = edge.Target;
-					}
-					// Yönsüz graf olduğu için bu düğüme gelen kenarlara da bak
-					else if (edge.Target.Id == current.Id)
-					{
-						neighbor = edge.Source;
-					}
+                // Komşuları bul
+                var neighbors = graph.Edges.Where(e => e.Source.Id == current.Id || e.Target.Id == current.Id);
 
-					if (neighbor != null && nodesQueue.Contains(neighbor))
-					{
-						double alt = distances[current.Id] + edge.Weight; // Dinamik Ağırlığı Burada Kullanıyoruz!
-						if (alt < distances[neighbor.Id])
-						{
-							distances[neighbor.Id] = alt;
-							previous[neighbor.Id] = current;
-						}
-					}
-				}
-			}
+                foreach (var edge in neighbors)
+                {
+                    var neighbor = (edge.Source.Id == current.Id) ? edge.Target : edge.Source;
 
-			// 3. Yolu Geriye Doğru Oluştur (Bitiş -> Başlangıç)
-			var path = new List<Node>();
-			Node temp = endNode;
+                    // Zaten ziyaret edildiyse atla
+                    if (!unvisited.Contains(neighbor)) continue;
 
-			if (previous.ContainsKey(temp.Id) || temp == startNode)
-			{
-				while (temp != null)
-				{
-					path.Add(temp);
-					if (temp.Id == startNode.Id) break;
-					temp = previous.ContainsKey(temp.Id) ? previous[temp.Id] : null;
-				}
-			}
+                    // Yeni mesafe hesabı: Mevcut mesafe + Kenar Ağırlığı
+                    double newDist = distances[current] + edge.Weight;
 
-			path.Reverse(); // Yolu düzelt (Başlangıç -> Bitiş)
-			return path;
-		}
-	}
+                    if (newDist < distances[neighbor])
+                    {
+                        distances[neighbor] = newDist;
+                        previous[neighbor] = current;
+                    }
+                }
+            }
+
+            // 3. Yolu Geriye Doğru Oluştur (Backtracking)
+            var path = new List<Node>();
+            var curr = endNode;
+
+            // Eğer hedefe hiç ulaşılamadıysa (previous listesinde yoksa) boş dön
+            if (!previous.ContainsKey(curr) && curr != startNode) return new List<Node>();
+
+            while (curr != null && previous.ContainsKey(curr))
+            {
+                path.Add(curr);
+                curr = previous[curr];
+            }
+
+            // Başlangıç düğümünü de ekle ve ters çevir
+            if (curr != null && curr.Id == startNode.Id)
+            {
+                path.Add(startNode);
+                path.Reverse();
+                return path;
+            }
+
+            return new List<Node>(); // Yol yok
+        }
+    }
 }

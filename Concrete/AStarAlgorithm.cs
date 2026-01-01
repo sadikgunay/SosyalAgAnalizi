@@ -6,93 +6,107 @@ using SocialNetworkGraph.App.Core;
 
 namespace SocialNetworkGraph.App.Algorithms.Concrete
 {
-	public class AStarAlgorithm : IGraphAlgorithm
-	{
-		public List<Node> Execute(Graph graph, Node startNode, Node endNode = null)
-		{
-			if (endNode == null) return new List<Node>();
+    public class AStarAlgorithm : IGraphAlgorithm
+    {
+        public List<Node> Execute(Graph graph, Node startNode, Node endNode)
+        {
+            var openSet = new HashSet<Node> { startNode }; // Gidilecekler listesi
+            var cameFrom = new Dictionary<Node, Node>();   // Yol haritası
 
-			// A* için gerekli listeler
-			var openSet = new List<Node> { startNode };
-			var comeFrom = new Dictionary<string, Node>();
+            var gScore = new Dictionary<Node, double>();   // Başlangıçtan buraya kadar olan kesin maliyet
+            var fScore = new Dictionary<Node, double>();   // Tahmini toplam maliyet (g + h)
 
-			// gScore: Başlangıçtan buraya kadar olan gerçek maliyet
-			var gScore = new Dictionary<string, double>();
-			// fScore: gScore + Tahmini Kalan Mesafe (Heuristic)
-			var fScore = new Dictionary<string, double>();
+            // Başlatma
+            foreach (var n in graph.Nodes)
+            {
+                gScore[n] = double.MaxValue;
+                fScore[n] = double.MaxValue;
+            }
 
-			// Başlangıç değerlerini ata
-			foreach (var node in graph.Nodes)
-			{
-				gScore[node.Id] = double.MaxValue;
-				fScore[node.Id] = double.MaxValue;
-			}
+            gScore[startNode] = 0;
+            fScore[startNode] = Heuristic(startNode, endNode);
 
-			gScore[startNode.Id] = 0;
-			fScore[startNode.Id] = Heuristic(startNode, endNode);
+            while (openSet.Count > 0)
+            {
+                // fScore değeri en düşük olan düğümü seç (En mantıklı aday)
+                Node current = null;
+                double minF = double.MaxValue;
 
-			while (openSet.Count > 0)
-			{
-				// fScore değeri en düşük olanı seç
-				openSet.Sort((a, b) => fScore[a.Id].CompareTo(fScore[b.Id]));
-				Node current = openSet[0];
+                foreach (var node in openSet)
+                {
+                    if (fScore[node] < minF)
+                    {
+                        minF = fScore[node];
+                        current = node;
+                    }
+                }
 
-				if (current.Id == endNode.Id)
-					return ReconstructPath(comeFrom, current); // Hedefe vardık!
+                // Hedefe ulaşıldı mı?
+                if (current == null) break;
+                if (current.Id == endNode.Id) return ReconstructPath(cameFrom, current);
 
-				openSet.RemoveAt(0);
+                openSet.Remove(current);
 
-				// Komşuları gez (Yönsüz graf için her iki yönü de kontrol et)
-				foreach (var edge in graph.Edges)
-				{
-					Node neighbor = null;
-					// Bu düğümden çıkan kenarlara bak
-					if (edge.Source.Id == current.Id)
-					{
-						neighbor = edge.Target;
-					}
-					// Yönsüz graf olduğu için bu düğüme gelen kenarlara da bak
-					else if (edge.Target.Id == current.Id)
-					{
-						neighbor = edge.Source;
-					}
+                // Komşuları gez
+                var neighbors = graph.Edges.Where(e => e.Source.Id == current.Id || e.Target.Id == current.Id);
 
-					if (neighbor != null)
-					{
-						double tentativeGScore = gScore[current.Id] + edge.Weight;
+                foreach (var edge in neighbors)
+                {
+                    var neighbor = (edge.Source.Id == current.Id) ? edge.Target : edge.Source;
 
-						if (tentativeGScore < gScore[neighbor.Id])
-						{
-							comeFrom[neighbor.Id] = current;
-							gScore[neighbor.Id] = tentativeGScore;
-							fScore[neighbor.Id] = gScore[neighbor.Id] + Heuristic(neighbor, endNode);
+                    // Yeni gScore hesabı (Kesin maliyet)
+                    double tentativeG = gScore[current] + edge.Weight;
 
-							if (!openSet.Any(n => n.Id == neighbor.Id))
-								openSet.Add(neighbor);
-						}
-					}
-				}
-			}
+                    if (tentativeG < gScore[neighbor])
+                    {
+                        // Daha iyi bir yol bulundu!
+                        cameFrom[neighbor] = current;
+                        gScore[neighbor] = tentativeG;
 
-			return new List<Node>(); // Yol bulunamadı
-		}
+                        // Toplam tahmini maliyeti güncelle: Kesin Maliyet + Tahmin (Heuristic)
+                        fScore[neighbor] = gScore[neighbor] + Heuristic(neighbor, endNode);
 
-		// Yolu geriye doğru oluşturma
-		private List<Node> ReconstructPath(Dictionary<string, Node> comeFrom, Node current)
-		{
-			var totalPath = new List<Node> { current };
-			while (comeFrom.ContainsKey(current.Id))
-			{
-				current = comeFrom[current.Id];
-				totalPath.Insert(0, current);
-			}
-			return totalPath;
-		}
+                        if (!openSet.Contains(neighbor))
+                        {
+                            openSet.Add(neighbor);
+                        }
+                    }
+                }
+            }
 
-		// Sezgisel Fonksiyon (Koordinat olmadığı için 0 dönüyoruz)
-		private double Heuristic(Node a, Node b)
-		{
-			return 0;
-		}
-	}
+            return new List<Node>(); // Yol bulunamadı
+        }
+
+        // --- KRİTİK DÜZELTME: GÜVENLİ HEURISTIC ---
+        private double Heuristic(Node a, Node b)
+        {
+            // Sosyal ağda 'kuş uçuşu mesafe' olmadığı için, kişilerin özellik benzerliğine bakıyoruz.
+            // Eğer iki kişi (düğüm) birbirine özellik olarak benziyorsa, birbirlerine yakındırlar varsayımı yapıyoruz.
+
+            double dAct = Math.Abs(a.Activity - b.Activity); // 0.0 - 1.0 arası
+
+            // Bağlantı sayısı farkı çok büyük olabilir (örn: 100). Bunu 0.01 ile çarparak küçültüyoruz.
+            double dConn = Math.Abs(a.ConnectionCount - b.ConnectionCount) * 0.01;
+
+            // Öklid benzeri bir hesaplama
+            double h = Math.Sqrt(dAct * dAct + dConn * dConn);
+
+            // ÖNEMLİ: Sonucu 0.5 ile çarparak "Underestimate" (Olduğundan az tahmin etme) yapıyoruz.
+            // Bu, A*'ın gerçek en kısa yolu bulmasını GARANTİ eder.
+            // Eğer bu değer çok büyük olursa, algoritma yanlış çalışır.
+            return h * 0.5;
+        }
+
+        private List<Node> ReconstructPath(Dictionary<Node, Node> cameFrom, Node current)
+        {
+            var path = new List<Node> { current };
+            while (cameFrom.ContainsKey(current))
+            {
+                current = cameFrom[current];
+                path.Add(current);
+            }
+            path.Reverse();
+            return path;
+        }
+    }
 }

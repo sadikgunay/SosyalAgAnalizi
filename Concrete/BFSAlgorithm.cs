@@ -1,48 +1,41 @@
 using System.Collections.Generic;
+using System.Linq;
 using SocialNetworkGraph.App.Algorithms.Interfaces;
 using SocialNetworkGraph.App.Core;
 
 namespace SocialNetworkGraph.App.Algorithms.Concrete
 {
-	public class BFSAlgorithm : IGraphAlgorithm
-	{
-		public List<Node> Execute(Graph graph, Node startNode, Node endNode = null)
-		{
-			// Ziyaret edilenlerin listesi (Sonuç kümesi)
-			List<Node> visitedOrder = new List<Node>();
+    public class BFSAlgorithm
+    {
+        public List<Node> Execute(Graph graph, Node startNode)
+        {
+            var visited = new HashSet<Node>();
+            var queue = new Queue<Node>();
+            var resultOrder = new List<Node>();
 
-			// Kuyruk yapısı (Sıradakiler)
-			Queue<Node> queue = new Queue<Node>();
-			HashSet<string> visitedIds = new HashSet<string>(); // Tekrarı önlemek için
+            visited.Add(startNode);
+            queue.Enqueue(startNode);
 
-			// Başlangıcı ekle
-			queue.Enqueue(startNode);
-			visitedIds.Add(startNode.Id);
+            while (queue.Count > 0)
+            {
+                var current = queue.Dequeue();
+                resultOrder.Add(current);
 
-			while (queue.Count > 0)
-			{
-				Node current = queue.Dequeue();
-				visitedOrder.Add(current);
+                // Kom�ular� bul
+                var neighbors = graph.Edges
+                    .Where(e => e.Source == current || e.Target == current)
+                    .Select(e => e.Source == current ? e.Target : e.Source);
 
-				// Komşuları bul (Yönsüz graf için her iki yönü de kontrol et)
-				foreach (var edge in graph.Edges)
-				{
-					// Eğer kenarın kaynağı bizsek, hedefi komşudur
-					if (edge.Source.Id == current.Id && !visitedIds.Contains(edge.Target.Id))
-					{
-						visitedIds.Add(edge.Target.Id);
-						queue.Enqueue(edge.Target);
-					}
-					// Yönsüz graf olduğu için tam tersini de kontrol et
-					else if (edge.Target.Id == current.Id && !visitedIds.Contains(edge.Source.Id))
-					{
-						visitedIds.Add(edge.Source.Id);
-						queue.Enqueue(edge.Source);
-					}
-				}
-			}
-
-			return visitedOrder;
-		}
-	}
+                foreach (var neighbor in neighbors)
+                {
+                    if (!visited.Contains(neighbor))
+                    {
+                        visited.Add(neighbor);
+                        queue.Enqueue(neighbor);
+                    }
+                }
+            }
+            return resultOrder;
+        }
+    }
 }

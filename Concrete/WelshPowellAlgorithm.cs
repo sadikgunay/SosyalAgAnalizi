@@ -1,92 +1,97 @@
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Msagl.Drawing;
+using SocialNetworkGraph.App.Core;
 
-// --- ÇAKIÞMAYI ÖNLEYEN TAKMA ÝSÝMLER (ALIASES) ---
-// Kodun geri kalanýnda "CoreGraph" dediðimizde bizim Graph sýnýfýmýz anlaþýlacak.
+// --- Ã‡AKIÅžMA Ã–NLEYÄ°CÄ°LER ---
 using CoreGraph = SocialNetworkGraph.App.Core.Graph;
 using CoreNode = SocialNetworkGraph.App.Core.Node;
-// "MsaglColor" dediðimizde boyama kütüphanesinin rengi anlaþýlacak.
 using MsaglColor = Microsoft.Msagl.Drawing.Color;
+// ---------------------------
 
 namespace SocialNetworkGraph.App.Algorithms.Concrete
 {
-	public class WelshPowellAlgorithm
-	{
-		// Renk Paletini "MsaglColor" türünden tanýmlýyoruz
-		private readonly List<MsaglColor> _palette = new List<MsaglColor>
-		{
-			MsaglColor.Red, MsaglColor.Blue, MsaglColor.Green, MsaglColor.Yellow, MsaglColor.Orange,
-			MsaglColor.Purple, MsaglColor.Cyan, MsaglColor.Magenta, MsaglColor.Brown, MsaglColor.Pink, MsaglColor.Gray
-		};
+    public class WelshPowellAlgorithm
+    {
+        // Ä°sterler gereÄŸi: Her bir ayrÄ±k topluluk iÃ§in ayrÄ± ayrÄ± Welsh-Powell uygulanmalÄ±
+        public Dictionary<CoreNode, MsaglColor> Execute(CoreGraph graph)
+        {
+            var coloring = new Dictionary<CoreNode, MsaglColor>();
+            
+            // 1. Ã–nce baÄŸlÄ± bileÅŸenleri bul
+            var components = new ConnectedComponentsAlgorithm().Execute(graph);
+            
+            // 2. Her bileÅŸen iÃ§in ayrÄ± ayrÄ± Welsh-Powell uygula
+            var palette = new List<MsaglColor>
+            {
+                MsaglColor.Red, MsaglColor.Blue, MsaglColor.Green, MsaglColor.Yellow, MsaglColor.Orange,
+                MsaglColor.Purple, MsaglColor.Cyan, MsaglColor.Magenta, MsaglColor.Brown, MsaglColor.Pink,
+                MsaglColor.LightBlue, MsaglColor.LightGreen, MsaglColor.LightYellow, MsaglColor.LightPink
+            };
+            
+            int globalColorOffset = 0;
+            
+            foreach (var component in components)
+            {
+                // Her bileÅŸen iÃ§in Welsh-Powell uygula
+                var componentColoring = ColorComponent(graph, component, palette, globalColorOffset);
+                
+                // SonuÃ§larÄ± ana coloring'e ekle
+                foreach (var item in componentColoring)
+                {
+                    coloring[item.Key] = item.Value;
+                }
+                
+                // Her bileÅŸen iÃ§in farklÄ± renk paleti kullanmak iÃ§in offset artÄ±r
+                globalColorOffset += componentColoring.Values.Distinct().Count();
+            }
+            
+            return coloring;
+        }
+        
+        // Bir bileÅŸen iÃ§in Welsh-Powell algoritmasÄ±
+        private Dictionary<CoreNode, MsaglColor> ColorComponent(CoreGraph graph, List<CoreNode> component, List<MsaglColor> palette, int colorOffset)
+        {
+            var coloring = new Dictionary<CoreNode, MsaglColor>();
+            
+            // Dereceye gÃ¶re sÄ±rala (yÃ¼ksek dereceli Ã¶nce)
+            var sortedNodes = component
+                .OrderByDescending(n => graph.Edges.Count(e => e.Source == n || e.Target == n))
+                .ToList();
+            
+            int colorIndex = colorOffset;
+            
+            while (sortedNodes.Count > 0)
+            {
+                var currentColor = palette[colorIndex % palette.Count];
+                var coloredInThisRound = new List<CoreNode>();
+                
+                foreach (var node in sortedNodes)
+                {
+                    // Bu dÃ¼ÄŸÃ¼m, bu turda renklendirilen dÃ¼ÄŸÃ¼mlerden herhangi biriyle komÅŸu mu?
+                    bool isNeighborToCurrentColor = coloredInThisRound.Any(coloredNode =>
+                        IsConnected(graph, node, coloredNode));
+                    
+                    if (!isNeighborToCurrentColor)
+                    {
+                        coloring[node] = currentColor;
+                        coloredInThisRound.Add(node);
+                    }
+                }
+                
+                // Bu turda renklendirilen dÃ¼ÄŸÃ¼mleri listeden Ã§Ä±kar
+                foreach (var n in coloredInThisRound) 
+                    sortedNodes.Remove(n);
+                
+                colorIndex++;
+            }
+            
+            return coloring;
+        }
 
-		// Fonksiyon parametresi olarak bizim "CoreGraph"ýmýzý istiyoruz
-		public Dictionary<string, MsaglColor> Execute(CoreGraph graph)
-		{
-			var nodeColors = new Dictionary<string, MsaglColor>();
-
-			// 1. ADIM: Düðümlerin derecelerini hesapla
-			var nodeDegrees = new Dictionary<string, int>();
-
-			foreach (var node in graph.Nodes)
-			{
-				// CoreNode kullanýyoruz
-				int degree = graph.Edges.Count(e => e.Source.Id == node.Id || e.Target.Id == node.Id);
-				nodeDegrees[node.Id] = degree;
-			}
-
-			// 2. ADIM: Düðümleri derecelerine göre sýrala
-			// OrderByDescending LINQ ifadesi CoreNode listesi üzerinde çalýþýr
-			var sortedNodes = graph.Nodes.OrderByDescending(n => nodeDegrees[n.Id]).ToList();
-
-			int colorIndex = 0;
-
-			while (sortedNodes.Count > 0)
-			{
-				MsaglColor currentColor = (colorIndex < _palette.Count) ? _palette[colorIndex] : MsaglColor.Black;
-
-				var firstNode = sortedNodes[0];
-				nodeColors[firstNode.Id] = currentColor;
-				sortedNodes.RemoveAt(0);
-
-				var nodesToColor = new List<CoreNode>();
-
-				foreach (var candidateNode in sortedNodes.ToList())
-				{
-					if (IsSafeToColor(graph, candidateNode, currentColor, nodeColors))
-					{
-						nodeColors[candidateNode.Id] = currentColor;
-						nodesToColor.Add(candidateNode);
-					}
-				}
-
-				foreach (var node in nodesToColor)
-				{
-					sortedNodes.Remove(node);
-				}
-
-				colorIndex++;
-			}
-
-			return nodeColors;
-		}
-
-		// Yardýmcý Fonksiyon
-		private bool IsSafeToColor(CoreGraph graph, CoreNode node, MsaglColor color, Dictionary<string, MsaglColor> currentColors)
-		{
-			foreach (var edge in graph.Edges)
-			{
-				string neighborId = null;
-
-				if (edge.Source.Id == node.Id) neighborId = edge.Target.Id;
-				else if (edge.Target.Id == node.Id) neighborId = edge.Source.Id;
-
-				if (neighborId != null && currentColors.ContainsKey(neighborId))
-				{
-					if (currentColors[neighborId] == color)
-						return false;
-				}
-			}
-			return true;
-		}
-	}
+        private bool IsConnected(CoreGraph graph, CoreNode n1, CoreNode n2)
+        {
+            return graph.Edges.Any(e => (e.Source == n1 && e.Target == n2) || (e.Source == n2 && e.Target == n1));
+        }
+    }
 }
