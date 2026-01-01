@@ -2,891 +2,813 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows;
+using System.Windows.Controls;
+using System.Diagnostics;
+using System.Text;
+using System.IO;
+using System.Windows.Threading;
+using System.Windows.Media;
+
+// Alias tanımları (Kod karmaşasını ve çakışmaları önler)
+using Brushes = System.Windows.Media.Brushes;
+using MsaglColor = Microsoft.Msagl.Drawing.Color;
+using MsaglEdge = Microsoft.Msagl.Drawing.Edge;
+using MsaglNode = Microsoft.Msagl.Drawing.Node;
+
+using Microsoft.Msagl.WpfGraphControl;
+using Microsoft.Msagl.Drawing;
+using SocialNetworkGraph.App.Core;
 using SocialNetworkGraph.App.Data;
 using SocialNetworkGraph.App.Visualization;
-using SocialNetworkGraph.App.Core;
 using SocialNetworkGraph.App.Algorithms.Concrete;
 using SocialNetworkGraph.App.Algorithms.Interfaces;
-using Microsoft.Msagl.WpfGraphControl;
-using System.Diagnostics; // Kronometre (Stopwatch) için gerekli
 
-// ÇAKIŞMA ÖNLEYİCİ: "MessageBox" dediğimizde WPF olanı anlayacak.
 using WpfMsgBox = System.Windows.MessageBox;
+using CoreNode = SocialNetworkGraph.App.Core.Node;
 
 namespace SocialNetworkGraph.App
 {
-	public partial class MainWindow : Window
-	{
-		private Core.Graph _myGraph;
-		private AutomaticGraphLayoutControl _viewer;
-
-		public MainWindow()
-		{
-			InitializeComponent();
-			_myGraph = new Core.Graph();
-			SetupViewer();
-			UpdateInfoPanel("🚀 Hoş geldiniz! Hızlı Başlangıç butonuna tıklayarak örnek veri ile başlayabilirsiniz.");
-		}
-
-		// Hızlı Başlangıç - Örnek Veri Oluştur
-		private void BtnQuickStart_Click(object sender, RoutedEventArgs e)
-		{
-			_myGraph = new Core.Graph();
-
-			// Gerçek hayat senaryosu: Sosyal medya ağı
-			var users = new[]
-			{
-				new Node("Ali", "Ali Yılmaz", 0.9, 150, 5),
-				new Node("Ayşe", "Ayşe Demir", 0.8, 120, 4),
-				new Node("Mehmet", "Mehmet Kaya", 0.7, 80, 3),
-				new Node("Zeynep", "Zeynep Şahin", 0.85, 100, 4),
-				new Node("Can", "Can Öztürk", 0.6, 60, 2),
-				new Node("Elif", "Elif Arslan", 0.75, 90, 3),
-				new Node("Burak", "Burak Çelik", 0.65, 70, 2),
-				new Node("Selin", "Selin Yıldız", 0.8, 110, 4)
-			};
-
-			foreach (var user in users)
-			{
-				_myGraph.Nodes.Add(user);
-			}
-
-			// Bağlantılar oluştur
-			_myGraph.AddEdge(users[0], users[1]); // Ali - Ayşe
-			_myGraph.AddEdge(users[0], users[2]); // Ali - Mehmet
-			_myGraph.AddEdge(users[0], users[3]); // Ali - Zeynep
-			_myGraph.AddEdge(users[1], users[3]); // Ayşe - Zeynep
-			_myGraph.AddEdge(users[1], users[4]); // Ayşe - Can
-			_myGraph.AddEdge(users[2], users[5]); // Mehmet - Elif
-			_myGraph.AddEdge(users[3], users[5]); // Zeynep - Elif
-			_myGraph.AddEdge(users[3], users[6]); // Zeynep - Burak
-			_myGraph.AddEdge(users[5], users[7]); // Elif - Selin
-			_myGraph.AddEdge(users[6], users[7]); // Burak - Selin
-
-			RefreshGraphDisplay();
-			ShowSuccessMessage("Hızlı Başlangıç", 
-				$"✅ Örnek sosyal ağ oluşturuldu!\n\n" +
-				$"📊 {_myGraph.Nodes.Count} kullanıcı\n" +
-				$"🔗 {_myGraph.Edges.Count} bağlantı\n\n" +
-				$"💡 Şimdi algoritmaları test edebilirsiniz!");
-		}
-
-		private void SetupViewer()
-		{
-			_viewer = new AutomaticGraphLayoutControl();
-
-			// TIKLAMA OLAYINI BAĞLIYORUZ
-			_viewer.MouseDown += Viewer_MouseDown;
-
-			if (GraphContainer != null)
-			{
-				GraphContainer.Child = _viewer;
-			}
-		}
-
-		// Tıklama Olayı Fonksiyonu
-		// Tıklama Olayı Fonksiyonu (DÜZELTİLMİŞ VERSİYON)
-		private void Viewer_MouseDown(object sender, System.Windows.Input.MouseButtonEventArgs e)
-		{
-			// WPF Mantığı: Tıklanan görsel parçayı (FrameworkElement) yakala
-			if (e.OriginalSource is FrameworkElement clickedElement)
-			{
-				// MSAGL, çizdiği balonların "Tag" özelliğine asıl Node nesnesini saklar.
-				// Tıklanan şeyin bir Node olup olmadığını kontrol ediyoruz:
-				if (clickedElement.Tag is Microsoft.Msagl.Drawing.Node msaglNode)
-				{
-					// Bizim kendi veritabanımızdan (Core.Node) bu kişiyi bulalım
-					var myNode = _myGraph.Nodes.Find(n => n.Id == msaglNode.Id);
-
-					if (myNode != null)
-					{
-						string info = $"👤 KİŞİ BİLGİLERİ\n\n" +
-									  $"Ad: {myNode.Name}\n" +
-									  $"Aktiflik Puanı: {myNode.Activity}\n" +
-									  $"Etkileşim Puanı: {myNode.Interaction}\n" +
-									  $"Bağlantı Özelliği: {myNode.ConnectionCount}\n\n" +
-									  $"Güncellemek için 'Bilgi Güncelleme' panelini kullanabilirsiniz.";
-
-						// Mesaj göster
-						WpfMsgBox.Show(info, "Seçilen Kişi");
-
-						// Bilgileri düğüm ekleme kutularına otomatik doldur (Kolaylık olsun)
-						if (TxtAddNodeName != null)
-						{
-							TxtAddNodeName.Text = myNode.Name;
-							TxtAddNodeAct.Text = myNode.Activity.ToString();
-							TxtAddNodeInt.Text = myNode.Interaction.ToString();
-							TxtAddNodeConn.Text = myNode.ConnectionCount.ToString();
-						}
-					}
-				}
-			}
-		}
-
-		// --- ALGORİTMA: A* (A-Star) ---
-		private void BtnRunAStar_Click(object sender, RoutedEventArgs e)
-		{
-			if (string.IsNullOrEmpty(TxtSource.Text) || string.IsNullOrEmpty(TxtTarget.Text))
-			{
-				ShowWarningMessage("Eksik Bilgi", "A* algoritması için hem Kaynak hem Hedef kişi girilmelidir.");
-				return;
-			}
-
-			Node startNode = GetOrCreateNode(TxtSource.Text.Trim());
-			Node endNode = GetOrCreateNode(TxtTarget.Text.Trim());
-
-			// SAYAÇ BAŞLAT
-			Stopwatch sw = new Stopwatch();
-			sw.Start();
-
-			IGraphAlgorithm aStar = new AStarAlgorithm();
-			List<Node> path = aStar.Execute(_myGraph, startNode, endNode);
-
-			// SAYAÇ DURDUR
-			sw.Stop();
-
-			if (path.Count == 0)
-			{
-				ShowErrorMessage("A* Algoritması", "Kaynak ve hedef arasında yol bulunamadı!");
-				return;
-			}
-
-			HighlightNodes(path, Microsoft.Msagl.Drawing.Color.Purple);
-
-			// Toplam ağırlık hesapla
-			double totalWeight = 0;
-			for (int i = 0; i < path.Count - 1; i++)
-			{
-				var edge = _myGraph.Edges.FirstOrDefault(e =>
-					(e.Source.Id == path[i].Id && e.Target.Id == path[i + 1].Id) ||
-					(e.Source.Id == path[i + 1].Id && e.Target.Id == path[i].Id));
-				if (edge != null) totalWeight += edge.Weight;
-			}
-
-			string result = $"⭐ A* Algoritması Sonuçları:\n\n" +
-						   $"📍 Yol: {string.Join(" → ", path.Select(n => n.Name))}\n" +
-						   $"📏 Adım Sayısı: {path.Count - 1}\n" +
-						   $"⚖️ Toplam Ağırlık: {totalWeight:F4}\n" +
-						   $"⏱️ Çalışma Süresi: {sw.ElapsedMilliseconds} ms ({sw.ElapsedTicks} ticks)";
-
-			ShowSuccessMessage("A* Algoritması", result);
-		}
-
-		// --- ALGORİTMA: Bağlı Bileşenler (Topluluk Bulma) ---
-		private void BtnComponents_Click(object sender, RoutedEventArgs e)
-		{
-			// SAYAÇ BAŞLAT
-			Stopwatch sw = new Stopwatch();
-			sw.Start();
-
-			var algorithm = new ConnectedComponentsAlgorithm();
-			var components = algorithm.Execute(_myGraph);
-
-			// SAYAÇ DURDUR
-			sw.Stop();
-
-			RefreshGraphDisplay();
-
-			Random rnd = new Random();
-			string stats = $"TOPLAM {components.Count} ADET AYRIK TOPLULUK BULUNDU:\n\n";
-			int count = 1;
-
-			foreach (var component in components)
-			{
-				var randomColor = new Microsoft.Msagl.Drawing.Color(
-					(byte)rnd.Next(50, 200), (byte)rnd.Next(50, 200), (byte)rnd.Next(50, 200));
-
-				stats += $"{count}. Grup: {component.Count} Kişi\n";
-
-				foreach (var node in component)
-				{
-					var msaglNode = _viewer.Graph.FindNode(node.Id);
-					if (msaglNode != null)
-					{
-						msaglNode.Attr.FillColor = randomColor;
-						msaglNode.Attr.LineWidth = 2;
-					}
-				}
-				count++;
-			}
-
-			_viewer.Graph = _viewer.Graph;
-			
-			string fullStats = $"🧩 Bağlı Bileşenler Analizi:\n\n" + stats + 
-							   $"\n⏱️ Hesaplama Süresi: {sw.ElapsedMilliseconds} ms\n" +
-							   $"📊 Toplam Düğüm Sayısı: {_myGraph.Nodes.Count}";
-			
-			ShowSuccessMessage("Topluluk Analizi", fullStats);
-		}
-
-		private void RefreshGraphDisplay()
-		{
-			if (_myGraph == null) return;
-
-			GraphVisualizer visualizer = new GraphVisualizer();
-			var msaglGraph = visualizer.CreateMsaglGraph(_myGraph);
-			_viewer.Graph = msaglGraph;
-
-			if (TxtStats != null)
-			{
-				TxtStats.Text = $"📊 Düğüm: {_myGraph.Nodes.Count} | Kenar: {_myGraph.Edges.Count}";
-			}
-
-			UpdateInfoPanel();
-		}
-
-		// Bilgi Paneli Güncelleme
-		private void UpdateInfoPanel(string customMessage = null)
-		{
-			if (TxtInfoPanel == null) return;
-
-			if (!string.IsNullOrEmpty(customMessage))
-			{
-				TxtInfoPanel.Text = customMessage;
-				return;
-			}
-
-			if (_myGraph == null || _myGraph.Nodes.Count == 0)
-			{
-				TxtInfoPanel.Text = "ℹ️ Bilgi: Graf boş. CSV/JSON yükleyin veya düğüm ekleyin.";
-				return;
-			}
-
-			// Ortalama değerleri hesapla
-			double avgActivity = _myGraph.Nodes.Average(n => n.Activity);
-			double avgInteraction = _myGraph.Nodes.Average(n => n.Interaction);
-			int totalConnections = _myGraph.Edges.Count;
-
-			TxtInfoPanel.Text = $"📊 Graf İstatistikleri:\n" +
-								$"   • Toplam Düğüm: {_myGraph.Nodes.Count}\n" +
-								$"   • Toplam Bağlantı: {totalConnections}\n" +
-								$"   • Ortalama Aktiflik: {avgActivity:F2}\n" +
-								$"   • Ortalama Etkileşim: {avgInteraction:F2}\n" +
-								$"💡 İpucu: Düğümlere tıklayarak detaylı bilgi görebilirsiniz.";
-		}
-
-		// Geliştirilmiş Mesaj Gösterme
-		private void ShowSuccessMessage(string title, string message)
-		{
-			WpfMsgBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Information);
-			UpdateInfoPanel($"✅ {title}: {message}");
-		}
-
-		private void ShowErrorMessage(string title, string message)
-		{
-			WpfMsgBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Error);
-			UpdateInfoPanel($"❌ {title}: {message}");
-		}
-
-		private void ShowWarningMessage(string title, string message)
-		{
-			WpfMsgBox.Show(message, title, MessageBoxButton.OK, MessageBoxImage.Warning);
-			UpdateInfoPanel($"⚠️ {title}: {message}");
-		}
-
-		// --- DOSYA YÜKLEME ---
-		private void BtnLoadGraph_Click(object sender, RoutedEventArgs e)
-		{
-			FileManager fileManager = new FileManager();
-			string path = "social_network.csv";
-
-			if (!System.IO.File.Exists(path))
-			{
-				ShowErrorMessage("Dosya Bulunamadı", $"'{path}' dosyası bulunamadı!\n\nLütfen dosyanın proje klasöründe olduğundan emin olun.");
-				return;
-			}
-
-			try
-			{
-				_myGraph = fileManager.LoadGraph(path);
-				RefreshGraphDisplay();
-				ShowSuccessMessage("Dosya Yüklendi", $"CSV dosyası başarıyla yüklendi!\n\nYüklenen: {_myGraph.Nodes.Count} düğüm, {_myGraph.Edges.Count} bağlantı");
-			}
-			catch (Exception ex)
-			{
-				ShowErrorMessage("Yükleme Hatası", $"Dosya yüklenirken hata oluştu:\n{ex.Message}");
-			}
-		}
-
-		// --- EKLEME: Yeni Bağlantı ---
-		// --- EKLEME: Yeni Bağlantı (Self-Loop Korumalı) ---
-		private void BtnAddEdge_Click(object sender, RoutedEventArgs e)
-		{
-			if (TxtSource == null || TxtTarget == null) return;
-
-			string sourceName = TxtSource.Text.Trim();
-			string targetName = TxtTarget.Text.Trim();
-
-			if (string.IsNullOrEmpty(sourceName) || string.IsNullOrEmpty(targetName))
-			{
-				ShowWarningMessage("Eksik Bilgi", "Lütfen Kaynak ve Hedef isimlerini girin.");
-				return;
-			}
-
-			// İSTER: Self-Loop (Kendine Bağlantı) Engelleme
-			if (sourceName.ToLower() == targetName.ToLower())
-			{
-				ShowErrorMessage("Geçersiz İşlem", "Bir kişi kendine bağlanamaz (Self-Loop yasak)!");
-				return;
-			}
-
-			Node sourceNode = GetOrCreateNode(sourceName);
-			Node targetNode = GetOrCreateNode(targetName);
-
-			// Daha önce böyle bir kenar var mı kontrolü (Duplicate Engelleme)
-			bool exists = _myGraph.Edges.Exists(edge =>
-				(edge.Source == sourceNode && edge.Target == targetNode) ||
-				(edge.Source == targetNode && edge.Target == sourceNode));
-
-			if (exists)
-			{
-				ShowWarningMessage("Bağlantı Mevcut", "Bu bağlantı zaten mevcut!");
-				return;
-			}
-
-			Edge newEdge = new Edge(sourceNode, targetNode);
-			_myGraph.Edges.Add(newEdge);
-
-			RefreshGraphDisplay();
-			AutoSave();
-
-			ShowSuccessMessage("Bağlantı Eklendi", $"{sourceNode.Name} ↔ {targetNode.Name} bağlantısı oluşturuldu!\nAğırlık: {newEdge.Weight:F4}");
-
-			TxtSource.Text = "";
-			TxtTarget.Text = "";
-		}
-
-		// --- SİLME: Düğüm ---
-		private void BtnDeleteNode_Click(object sender, RoutedEventArgs e)
-		{
-			if (string.IsNullOrEmpty(TxtAddNodeName.Text)) 
-			{
-				ShowWarningMessage("Eksik Bilgi", "Lütfen silinecek düğümün ismini girin.");
-				return;
-			}
-
-			string nodeName = TxtAddNodeName.Text.Trim();
-			Node nodeToRemove = _myGraph.Nodes.Find(n => n.Id.ToLower() == nodeName.ToLower());
-
-			if (nodeToRemove == null)
-			{
-				ShowErrorMessage("Bulunamadı", $"'{nodeName}' isimli düğüm bulunamadı!");
-				return;
-			}
-
-			// Bağlantıları sil
-			for (int i = _myGraph.Edges.Count - 1; i >= 0; i--)
-			{
-				var edge = _myGraph.Edges[i];
-				if (edge.Source.Id == nodeToRemove.Id || edge.Target.Id == nodeToRemove.Id)
-				{
-					_myGraph.Edges.RemoveAt(i);
-				}
-			}
-
-			_myGraph.Nodes.Remove(nodeToRemove);
-			RefreshGraphDisplay();
-			AutoSave();
-			ShowSuccessMessage("Silindi", $"{nodeName} ve tüm bağlantıları silindi.");
-			TxtAddNodeName.Text = "";
-		}
-
-		// --- SİLME: Kenar ---
-		private void BtnDeleteEdge_Click(object sender, RoutedEventArgs e)
-		{
-			string sourceName = TxtSource.Text.Trim();
-			string targetName = TxtTarget.Text.Trim();
-
-			if (string.IsNullOrEmpty(sourceName) || string.IsNullOrEmpty(targetName))
-			{
-				ShowWarningMessage("Eksik Bilgi", "Bağlantıyı silmek için Kaynak ve Hedef kutularını doldurun.");
-				return;
-			}
-
-			var edgeToRemove = _myGraph.Edges.Find(edge =>
-				edge.Source.Id.ToLower() == sourceName.ToLower() &&
-				edge.Target.Id.ToLower() == targetName.ToLower());
-
-			if (edgeToRemove == null)
-			{
-				edgeToRemove = _myGraph.Edges.Find(edge =>
-					edge.Source.Id.ToLower() == targetName.ToLower() &&
-					edge.Target.Id.ToLower() == sourceName.ToLower());
-			}
-
-			if (edgeToRemove != null)
-			{
-				_myGraph.Edges.Remove(edgeToRemove);
-				RefreshGraphDisplay();
-				AutoSave();
-				ShowSuccessMessage("Bağlantı Silindi", $"{sourceName} ↔ {targetName} bağlantısı koparıldı.");
-				TxtSource.Text = "";
-				TxtTarget.Text = "";
-			}
-			else
-			{
-				ShowErrorMessage("Bulunamadı", "Böyle bir bağlantı bulunamadı.");
-			}
-		}
-
-		// --- TEMİZLEME ---
-		private void BtnClear_Click(object sender, RoutedEventArgs e)
-		{
-			_myGraph = new Core.Graph();
-			RefreshGraphDisplay();
-		}
-
-		// --- ALGORİTMA: BFS ---
-		private void BtnRunBFS_Click(object sender, RoutedEventArgs e)
-		{
-			if (string.IsNullOrEmpty(TxtSource.Text))
-			{
-				WpfMsgBox.Show("Lütfen 'Kaynak Kişi' kutusuna bir isim yazın.");
-				return;
-			}
-
-			string startName = TxtSource.Text.Trim();
-			Node startNode = GetOrCreateNode(startName);
-
-			// SAYAÇ BAŞLAT
-			Stopwatch sw = new Stopwatch();
-			sw.Start();
-
-			IGraphAlgorithm bfs = new BFSAlgorithm();
-			List<Node> visitedNodes = bfs.Execute(_myGraph, startNode);
-
-			// SAYAÇ DURDUR
-			sw.Stop();
-
-			HighlightNodes(visitedNodes, Microsoft.Msagl.Drawing.Color.LightGreen);
-
-			string result = $"🔍 BFS (Breadth-First Search) Sonuçları:\n\n" +
-						   $"📍 Başlangıç Düğümü: {startNode.Name}\n" +
-						   $"👥 Erişilen Düğüm Sayısı: {visitedNodes.Count}\n" +
-						   $"📊 Toplam Düğüm: {_myGraph.Nodes.Count}\n" +
-						   $"📈 Erişim Oranı: {(visitedNodes.Count * 100.0 / _myGraph.Nodes.Count):F1}%\n" +
-						   $"⏱️ Çalışma Süresi: {sw.ElapsedMilliseconds} ms\n\n" +
-						   $"🔗 Erişilen Düğümler: {string.Join(", ", visitedNodes.Select(n => n.Name))}";
-
-			ShowSuccessMessage("BFS Algoritması", result);
-		}
-
-		// --- ALGORİTMA: DFS (Performans Ölçümlü) ---
-		private void BtnRunDFS_Click(object sender, RoutedEventArgs e)
-		{
-			if (string.IsNullOrEmpty(TxtSource.Text))
-			{
-				WpfMsgBox.Show("Lütfen 'Kaynak Kişi' kutusuna bir isim yazın.");
-				return;
-			}
-			string startName = TxtSource.Text.Trim();
-
-			Node startNode = _myGraph.Nodes.Find(n => n.Id.ToLower() == startName.ToLower());
-			if (startNode == null)
-			{
-				ShowErrorMessage("Bulunamadı", $"'{startName}' isimli kişi grafikte bulunamadı!\n\nLütfen önce bu kişiyi ekleyin.");
-				return;
-			}
-
-			// SAYAÇ BAŞLAT
-			Stopwatch sw = new Stopwatch();
-			sw.Start();
-
-			IGraphAlgorithm dfs = new DFSAlgorithm();
-			List<Node> visitedNodes = dfs.Execute(_myGraph, startNode);
-
-			// SAYAÇ DURDUR
-			sw.Stop();
-
-			HighlightNodes(visitedNodes, Microsoft.Msagl.Drawing.Color.Orange);
-
-			string result = $"🕵️ DFS (Depth-First Search) Sonuçları:\n\n" +
-						   $"📍 Başlangıç Düğümü: {startNode.Name}\n" +
-						   $"👥 Erişilen Düğüm Sayısı: {visitedNodes.Count}\n" +
-						   $"📊 Toplam Düğüm: {_myGraph.Nodes.Count}\n" +
-						   $"📈 Erişim Oranı: {(visitedNodes.Count * 100.0 / _myGraph.Nodes.Count):F1}%\n" +
-						   $"⏱️ Çalışma Süresi: {sw.ElapsedMilliseconds} ms\n\n" +
-						   $"🔗 Erişilen Düğümler: {string.Join(", ", visitedNodes.Select(n => n.Name))}";
-
-			ShowSuccessMessage("DFS Algoritması", result);
-		}
-
-		// --- ALGORİTMA: Dijkstra ---
-		private void BtnRunDijkstra_Click(object sender, RoutedEventArgs e)
-		{
-			if (string.IsNullOrEmpty(TxtSource.Text) || string.IsNullOrEmpty(TxtTarget.Text))
-			{
-				ShowWarningMessage("Eksik Bilgi", "Dijkstra algoritması için hem Kaynak hem Hedef kişi girilmelidir.");
-				return;
-			}
-
-			Node startNode = GetOrCreateNode(TxtSource.Text.Trim());
-			Node endNode = GetOrCreateNode(TxtTarget.Text.Trim());
-			
-			if (startNode == null || endNode == null)
-			{
-				ShowErrorMessage("Hata", "Düğüm bulunamadı veya oluşturulamadı!");
-				return;
-			}
-
-			// SAYAÇ BAŞLAT
-			Stopwatch sw = new Stopwatch();
-			sw.Start();
-
-			IGraphAlgorithm dijkstra = new DijkstraAlgorithm();
-			List<Node> path = dijkstra.Execute(_myGraph, startNode, endNode);
-
-			// SAYAÇ DURDUR
-			sw.Stop();
-
-			if (path.Count == 0)
-			{
-				ShowErrorMessage("Dijkstra Algoritması", "Kaynak ve hedef arasında yol bulunamadı!");
-				return;
-			}
-
-			HighlightNodes(path, Microsoft.Msagl.Drawing.Color.Red);
-
-			// Toplam ağırlık hesapla
-			double totalWeight = 0;
-			for (int i = 0; i < path.Count - 1; i++)
-			{
-				var edge = _myGraph.Edges.FirstOrDefault(e =>
-					(e.Source.Id == path[i].Id && e.Target.Id == path[i + 1].Id) ||
-					(e.Source.Id == path[i + 1].Id && e.Target.Id == path[i].Id));
-				if (edge != null) totalWeight += edge.Weight;
-			}
-
-			string result = $"🚀 Dijkstra Algoritması Sonuçları:\n\n" +
-						   $"📍 Yol: {string.Join(" → ", path.Select(n => n.Name))}\n" +
-						   $"📏 Adım Sayısı: {path.Count - 1}\n" +
-						   $"⚖️ Toplam Ağırlık (Maliyet): {totalWeight:F4}\n" +
-						   $"⏱️ Çalışma Süresi: {sw.ElapsedMilliseconds} ms";
-
-			ShowSuccessMessage("Dijkstra Algoritması", result);
-		}
-
-		// --- ALGORİTMA: Welsh-Powell (Renklendirme) ---
-		private void BtnWelshPowell_Click(object sender, RoutedEventArgs e)
-		{
-			// SAYAÇ BAŞLAT
-			Stopwatch sw = new Stopwatch();
-			sw.Start();
-
-			WelshPowellAlgorithm algorithm = new WelshPowellAlgorithm();
-			var colorMap = algorithm.Execute(_myGraph);
-
-			// SAYAÇ DURDUR
-			sw.Stop();
-
-			RefreshGraphDisplay();
-
-			foreach (var kvp in colorMap)
-			{
-				var msaglNode = _viewer.Graph.FindNode(kvp.Key);
-				if (msaglNode != null)
-				{
-					msaglNode.Attr.FillColor = kvp.Value;
-					msaglNode.Label.FontColor = Microsoft.Msagl.Drawing.Color.White;
-				}
-			}
-			_viewer.Graph = _viewer.Graph;
-
-			string stats = "BOYAMA SONUCU:\n";
-			// Renk gruplarını say
-			var groups = new Dictionary<string, int>();
-			foreach (var c in colorMap.Values)
-			{
-				string cName = c.ToString();
-				if (!groups.ContainsKey(cName)) groups[cName] = 0;
-				groups[cName]++;
-			}
-			foreach (var g in groups) stats += $"{g.Key}: {g.Value} Kişi\n";
-
-			string fullStats = $"🎨 Welsh-Powell Renklendirme Sonuçları:\n\n" + stats + 
-							   $"\n⏱️ Algoritma Süresi: {sw.ElapsedMilliseconds} ms\n" +
-							   $"📊 Toplam Renk Sayısı: {groups.Count}";
-			
-			ShowSuccessMessage("Welsh-Powell Renklendirme", fullStats);
-		}
-
-		// --- ANALİZ: Degree Centrality ---
-		private void BtnAnalysis_Click(object sender, RoutedEventArgs e)
-		{
-			if (_myGraph.Nodes.Count == 0)
-			{
-				ShowWarningMessage("Boş Graf", "Grafik boş. Lütfen önce düğüm ekleyin veya dosya yükleyin.");
-				return;
-			}
-
-			// SAYAÇ BAŞLAT
-			Stopwatch sw = new Stopwatch();
-			sw.Start();
-
-			var algorithm = new DegreeCentralityAlgorithm();
-			var topNodes = algorithm.Execute(_myGraph, 5);
-
-			// SAYAÇ DURDUR
-			sw.Stop();
-
-			string report = "🏆 EN POPÜLER 5 KİŞİ\n-------------------\n";
-			foreach (var item in topNodes)
-			{
-				report += $"{item.Key.Name} -> {item.Value} Bağlantı\n";
-
-				var msaglNode = _viewer.Graph.FindNode(item.Key.Id);
-				if (msaglNode != null) msaglNode.Attr.LineWidth = 4;
-			}
-			_viewer.Graph = _viewer.Graph;
-
-			string fullReport = $"📊 Merkezilik (Degree Centrality) Analizi:\n\n" + report + 
-								 $"\n⏱️ Analiz Süresi: {sw.ElapsedMilliseconds} ms\n" +
-								 $"💡 Not: En yüksek dereceli düğümler en etkili kullanıcılardır.";
-			
-			ShowSuccessMessage("Merkezilik Analizi", fullReport);
-		}
-
-
-		private void BtnExport_Click(object sender, RoutedEventArgs e)
-		{
-			try
-			{
-				FileManager fm = new FileManager();
-				fm.SaveGraph(_myGraph, "saved_graph.csv");
-				ShowSuccessMessage("Kaydedildi", $"Grafik 'saved_graph.csv' olarak kaydedildi!\n\nKaydedilen: {_myGraph.Nodes.Count} düğüm, {_myGraph.Edges.Count} bağlantı");
-			}
-			catch (Exception ex)
-			{
-				WpfMsgBox.Show("Kaydetme hatası: " + ex.Message);
-			}
-		}
-
-		// JSON Yükleme
-		private void BtnLoadJson_Click(object sender, RoutedEventArgs e)
-		{
-			var dialog = new Microsoft.Win32.OpenFileDialog
-			{
-				Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
-				Title = "JSON Dosyası Seç"
-			};
-
-			if (dialog.ShowDialog() == true)
-			{
-				try
-				{
-					FileManager fileManager = new FileManager();
-					_myGraph = fileManager.LoadGraphFromJson(dialog.FileName);
-					RefreshGraphDisplay();
-					WpfMsgBox.Show("JSON dosyası başarıyla yüklendi!");
-				}
-				catch (Exception ex)
-				{
-					ShowErrorMessage("Yükleme Hatası", $"JSON dosyası yüklenirken hata oluştu:\n{ex.Message}");
-				}
-			}
-		}
-
-		// JSON Kaydetme
-		private void BtnExportJson_Click(object sender, RoutedEventArgs e)
-		{
-			var dialog = new Microsoft.Win32.SaveFileDialog
-			{
-				Filter = "JSON files (*.json)|*.json|All files (*.*)|*.*",
-				Title = "JSON Olarak Kaydet",
-				FileName = "graph.json"
-			};
-
-			if (dialog.ShowDialog() == true)
-			{
-				try
-				{
-					FileManager fm = new FileManager();
-					fm.SaveGraphToJson(_myGraph, dialog.FileName);
-					ShowSuccessMessage("Kaydedildi", $"Grafik '{dialog.FileName}' olarak kaydedildi!\n\nKaydedilen: {_myGraph.Nodes.Count} düğüm, {_myGraph.Edges.Count} bağlantı");
-				}
-				catch (Exception ex)
-				{
-					WpfMsgBox.Show("Kaydetme hatası: " + ex.Message);
-				}
-			}
-		}
-
-		// Düğüm Ekleme
-		private void BtnAddNode_Click(object sender, RoutedEventArgs e)
-		{
-			if (string.IsNullOrEmpty(TxtAddNodeName.Text.Trim()))
-			{
-				ShowWarningMessage("Eksik Bilgi", "Lütfen bir isim girin.");
-				return;
-			}
-
-			string nodeName = TxtAddNodeName.Text.Trim();
-
-			// Aynı isimde düğüm var mı kontrol et
-			if (_myGraph.Nodes.Any(n => n.Id.ToLower() == nodeName.ToLower()))
-			{
-				ShowWarningMessage("Düğüm Mevcut", "Bu isimde bir kişi zaten mevcut!");
-				return;
-			}
-
-			try
-			{
-				double activity = string.IsNullOrEmpty(TxtAddNodeAct.Text) ? 0.5 : double.Parse(TxtAddNodeAct.Text.Replace(".", ","));
-				double interaction = string.IsNullOrEmpty(TxtAddNodeInt.Text) ? 5 : double.Parse(TxtAddNodeInt.Text.Replace(".", ","));
-				int connCount = string.IsNullOrEmpty(TxtAddNodeConn.Text) ? 0 : int.Parse(TxtAddNodeConn.Text);
-
-				Node newNode = new Node(nodeName, nodeName, activity, interaction, connCount);
-				_myGraph.Nodes.Add(newNode);
-
-				RefreshGraphDisplay();
-				AutoSave();
-
-				ShowSuccessMessage("Düğüm Eklendi", $"{nodeName} başarıyla eklendi!\n\nÖzellikler:\n• Aktiflik: {activity}\n• Etkileşim: {interaction}\n• Bağlantı Sayısı: {connCount}");
-				
-				// Formu temizle
-				TxtAddNodeName.Text = "";
-				TxtAddNodeAct.Text = "";
-				TxtAddNodeInt.Text = "";
-				TxtAddNodeConn.Text = "";
-			}
-			catch
-			{
-				WpfMsgBox.Show("Lütfen sayısal değerleri doğru giriniz.");
-			}
-		}
-
-		private void BtnMatrix_Click(object sender, RoutedEventArgs e)
-		{
-			string matrix = "KOMŞULUK MATRİSİ\n\n";
-			var nodes = _myGraph.Nodes;
-
-			// Başlık satırı
-			matrix += "       ";
-			foreach (var n in nodes) matrix += $"{n.Name.Substring(0, Math.Min(3, n.Name.Length))}  ";
-			matrix += "\n";
-
-			// Matris satırları
-			foreach (var rowNode in nodes)
-			{
-				matrix += $"{rowNode.Name.Substring(0, Math.Min(5, rowNode.Name.Length)),-5} |";
-
-				foreach (var colNode in nodes)
-				{
-					// Bağlantı var mı?
-					bool connected = _myGraph.Edges.Exists(edge =>
-						(edge.Source == rowNode && edge.Target == colNode) ||
-						(edge.Source == colNode && edge.Target == rowNode));
-
-					matrix += (connected ? " 1   " : " 0   ");
-				}
-				matrix += "\n";
-			}
-
-			WpfMsgBox.Show(matrix, "Matris Görünümü");
-		}
-
-		private void BtnUpdateNode_Click(object sender, RoutedEventArgs e)
-		{
-			string name = TxtAddNodeName.Text.Trim();
-			if (string.IsNullOrEmpty(name))
-			{
-				ShowWarningMessage("Eksik Bilgi", "Lütfen güncellenecek düğümün ismini girin.");
-				return;
-			}
-
-			var node = _myGraph.Nodes.Find(n => n.Id.ToLower() == name.ToLower());
-			if (node == null)
-			{
-				ShowErrorMessage("Bulunamadı", $"'{name}' isimli kişi bulunamadı!");
-				return;
-			}
-
-			try
-			{
-				// Yeni değerleri al
-				node.Activity = double.Parse(TxtAddNodeAct.Text.Replace(".", ","));
-				node.Interaction = double.Parse(TxtAddNodeInt.Text.Replace(".", ","));
-				node.ConnectionCount = int.Parse(TxtAddNodeConn.Text);
-
-				// DİKKAT: Özellikler değiştiği için ağırlıkları (Weight) yeniden hesaplamalıyız!
-				// Bu düğüme bağlı tüm kenarları bul ve güncelle
-				foreach (var edge in _myGraph.Edges)
-				{
-					if (edge.Source == node || edge.Target == node)
-					{
-						// Edge sınıfı ağırlığı dinamik hesaplıyordu (CalculateWeight), 
-						// ama nesne referansları aynı olduğu için MSAGL tarafını güncellemeliyiz.
-						// Ağırlık özelliği 'get' metodunda otomatik hesaplanıyor zaten.
-					}
-				}
-
-				RefreshGraphDisplay();
-				AutoSave();
-				ShowSuccessMessage("Güncellendi", $"{name} başarıyla güncellendi!\n\nYeni Özellikler:\n• Aktiflik: {node.Activity}\n• Etkileşim: {node.Interaction}\n• Bağlantı Sayısı: {node.ConnectionCount}\n\nGrafikteki ağırlıklar otomatik olarak yenilendi.");
-			}
-			catch
-			{
-				ShowErrorMessage("Geçersiz Değer", "Lütfen sayısal değerleri doğru giriniz.");
-			}
-		}
-
-		// YARDIMCI FONKSİYONLAR
-		private Node GetOrCreateNode(string name)
-		{
-			if (string.IsNullOrEmpty(name)) return null;
-
-			string searchName = name.Trim().ToLower();
-			
-			// Önce ID ile ara
-			foreach (var node in _myGraph.Nodes)
-			{
-				if (node.Id.ToLower() == searchName) return node;
-			}
-			
-			// Sonra Name ile ara (tam isim veya kısmi eşleşme)
-			foreach (var node in _myGraph.Nodes)
-			{
-				if (node.Name.ToLower() == searchName || 
-					node.Name.ToLower().Contains(searchName) ||
-					searchName.Contains(node.Name.ToLower()))
-				{
-					return node;
-				}
-			}
-			
-			// Bulunamadıysa varsayılan özelliklerle yeni düğüm oluştur
-			Node newNode = new Node(name, name, 0.5, 5, 1);
-			_myGraph.Nodes.Add(newNode);
-			return newNode;
-		}
-
-		private void HighlightNodes(List<Node> nodes, Microsoft.Msagl.Drawing.Color color)
-		{
-			RefreshGraphDisplay();
-			foreach (var node in nodes)
-			{
-				var msaglNode = _viewer.Graph.FindNode(node.Id);
-				if (msaglNode != null)
-				{
-					msaglNode.Attr.FillColor = color;
-				}
-			}
-			_viewer.Graph = _viewer.Graph;
-		}
-		// Bu fonksiyonu her değişiklikten sonra çağıracağız
-		private void AutoSave()
-		{
-			try
-			{
-				FileManager fm = new FileManager();
-				// Dosya adının yüklediğin dosyayla aynı olduğundan emin ol
-				fm.SaveGraph(_myGraph, "social_network.csv");
-			}
-			catch (Exception ex)
-			{
-				// Arka planda hata olursa kullanıcıyı rahatsız etmeyelim veya loglayalım
-				System.Diagnostics.Debug.WriteLine("Otomatik kayıt hatası: " + ex.Message);
-			}
-		}
-	}
+    public enum StatusType { Info, Success, Warning, Error }
+    public partial class MainWindow : Window
+    {
+        private Core.Graph _myGraph;
+        private AutomaticGraphLayoutControl _viewer;
+        private GraphVisualizer _visualizer;
+        private UndoManager _undoManager;
+        private Data.BackupManager _backupManager;
+
+        private DispatcherTimer _simTimer;
+        private List<string> _infectedNodeIds;
+        private Random _rnd = new Random();
+
+        public MainWindow()
+        {
+            InitializeComponent();
+            _myGraph = new Core.Graph();
+            _visualizer = new GraphVisualizer();
+            _undoManager = new UndoManager();
+            _backupManager = new Data.BackupManager();
+
+            _simTimer = new DispatcherTimer();
+            _simTimer.Interval = TimeSpan.FromSeconds(1);
+            _simTimer.Tick += SimTimer_Tick;
+
+            SetupViewer();
+            SetupBackupPlaceholder();
+        }
+
+        private void SetupBackupPlaceholder()
+        {
+            TxtBackupName.GotFocus += (s, e) => { if (TxtBackupName.Text == "Yedek Adı...") { TxtBackupName.Text = ""; TxtBackupName.Foreground = Brushes.White; } };
+            TxtBackupName.LostFocus += (s, e) => { if (string.IsNullOrWhiteSpace(TxtBackupName.Text)) { TxtBackupName.Text = "Yedek Adı..."; TxtBackupName.Foreground = Brushes.Gray; } };
+            TxtBackupName.Text = "Yedek Adı..."; TxtBackupName.Foreground = Brushes.Gray;
+        }
+
+        private void SetupViewer()
+        {
+            _viewer = new AutomaticGraphLayoutControl();
+
+            // --- ENTEGRE EDİLEN ÖZELLİK 1: Tıklama Garantisi ---
+            // MouseDown yerine PreviewMouseLeftButtonUp kullanıyoruz.
+            // Bu, MSAGL'in tıklamayı yutmasını engeller.
+            _viewer.PreviewMouseLeftButtonUp += Viewer_PreviewMouseLeftButtonUp;
+            _viewer.MouseRightButtonUp += Viewer_MouseRightButtonUp;
+
+            GraphContainer.Child = _viewer;
+        }
+
+        private void SaveStateForUndo() => _undoManager.SaveState(_myGraph);
+
+        private void RefreshGraph()
+        {
+            if (_myGraph == null) return;
+            var msaglGraph = _visualizer.CreateMsaglGraph(_myGraph);
+            _viewer.Graph = msaglGraph;
+            ApplyFilter();
+            TxtDetails.Text = $"{_myGraph.Nodes.Count} Düğüm | {_myGraph.Edges.Count} Kenar";
+        }
+
+        private void ResetVisuals()
+        {
+            if (_viewer.Graph == null) return;
+            var defFill = new MsaglColor(30, 41, 59);
+            var defBorder = new MsaglColor(34, 211, 238);
+            foreach (var n in _viewer.Graph.Nodes) { n.Attr.FillColor = defFill; n.Attr.Color = defBorder; }
+            foreach (var e in _viewer.Graph.Edges) { e.Attr.Color = new MsaglColor(71, 85, 105); }
+        }
+
+        private void FilterSlider_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e) => ApplyFilter();
+
+        private void ApplyFilter()
+        {
+            if (_viewer == null || _viewer.Graph == null || _myGraph == null) return;
+
+            // Filtreleme mantığını iyileştirdik: Max ağırlığa göre oranla
+            double maxWeight = _myGraph.Edges.Any() ? _myGraph.Edges.Max(x => x.Weight) : 1.0;
+            double threshold = maxWeight * FilterSlider.Value;
+
+            foreach (var edge in _viewer.Graph.Edges)
+            {
+                var coreEdge = _myGraph.Edges.FirstOrDefault(x =>
+                    (x.Source.Id == edge.Source && x.Target.Id == edge.Target) ||
+                    (x.Source.Id == edge.Target && x.Target.Id == edge.Source));
+
+                if (coreEdge != null)
+                {
+                    edge.IsVisible = coreEdge.Weight >= threshold;
+                }
+                else
+                {
+                    edge.IsVisible = false;
+                }
+            }
+            _viewer.Graph = _viewer.Graph;
+        }
+
+        // --- ENTEGRE EDİLEN ÖZELLİK 2: Güçlendirilmiş Hit-Test ---
+        private object GetMsaglObjectFromClick(object originalSource)
+        {
+            var current = originalSource as DependencyObject;
+            int depth = 0;
+            // Derinliği 50'ye çıkardık ve Viewer dışına taşmayı engelledik
+            while (current != null && current != _viewer && depth < 50)
+            {
+                if (current is FrameworkElement element)
+                {
+                    // Hem Tag hem DataContext kontrolü yapıyoruz
+                    if (element.Tag is IViewerNode vn) return vn.Node;
+                    if (element.Tag is IViewerEdge ve) return ve.Edge;
+                    if (element.DataContext is IViewerNode vnDc) return vnDc.Node;
+                    if (element.DataContext is IViewerEdge veDc) return veDc.Edge;
+                }
+                try { current = VisualTreeHelper.GetParent(current); } catch { break; }
+                depth++;
+            }
+            return null;
+        }
+
+        // --- ENTEGRE EDİLEN ÖZELLİK 3: Sol Tık Olayı ---
+        private void Viewer_PreviewMouseLeftButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            var hitObject = GetMsaglObjectFromClick(e.OriginalSource);
+
+            if (hitObject is MsaglNode msaglNode)
+            {
+                if (msaglNode.UserData is CoreNode cn)
+                {
+                    // 1. Editör panelini doldur
+                    FillNodePanel(cn);
+                    TxtStatus.Text = $"SEÇİLDİ: {cn.Name}";
+
+                    // 2. BİLGİ PANELİNİ AÇ (İsteğiniz üzerine eklendi)
+                    ShowLegend("DÜĞÜM DETAYI",
+                        $"📌 Ad: {cn.Name}\n" +
+                        $"⚡ Aktivite: {cn.Activity:F2}\n" +
+                        $"🔄 Etkileşim: {cn.Interaction:F2}\n" +
+                        $"🔗 Bağlantılar: {cn.ConnectionCount}");
+
+                    // 3. Görsel vurgulama (Cyan yap)
+                    msaglNode.Attr.FillColor = MsaglColor.Cyan;
+                    _viewer.Graph = _viewer.Graph; // Ekranı yenile
+                }
+            }
+            // Kenar tıklama veya boşluk tıklama buraya eklenebilir ama genelde sol tık seçim içindir.
+        }
+
+        // --- ENTEGRE EDİLEN ÖZELLİK 4: Sağ Tık Olayı ---
+        private void Viewer_MouseRightButtonUp(object sender, System.Windows.Input.MouseButtonEventArgs e)
+        {
+            var hitObject = GetMsaglObjectFromClick(e.OriginalSource);
+
+            if (hitObject is MsaglNode msaglNode && msaglNode.UserData is CoreNode cn)
+            {
+                OpenNodeContextMenu(cn);
+            }
+            else if (hitObject is MsaglEdge msaglEdge)
+            {
+                OpenEdgeContextMenu(msaglEdge);
+            }
+            else if (hitObject == null)
+            {
+                OpenCanvasContextMenu();
+            }
+        }
+
+        // --- MENÜLER ---
+        private void OpenEdgeContextMenu(MsaglEdge e)
+        {
+            ContextMenu cm = new ContextMenu();
+            MenuItem d = new MenuItem { Header = "✂️ Bağlantıyı Kopar", Foreground = Brushes.Red };
+            d.Click += (o, args) => {
+                SaveStateForUndo();
+                string sId = e.Source; string tId = e.Target;
+                var edgeToRemove = _myGraph.Edges.FirstOrDefault(x => (x.Source.Id == sId && x.Target.Id == tId) || (x.Source.Id == tId && x.Target.Id == sId));
+                if (edgeToRemove != null)
+                {
+                    _myGraph.Edges.Remove(edgeToRemove);
+                    _myGraph.UpdateConnectionCounts();
+                }
+                e.IsVisible = false;
+                _viewer.Graph = _viewer.Graph;
+                TxtStatus.Text = "Bağlantı koptu.";
+            };
+            cm.Items.Add(d); cm.IsOpen = true;
+        }
+
+        private void OpenNodeContextMenu(CoreNode n)
+        {
+            ContextMenu cm = new ContextMenu();
+            MenuItem s = new MenuItem { Header = "🎯 Kaynak Yap" }; s.Click += (o, e) => TxtSource.Text = n.Id;
+            MenuItem t = new MenuItem { Header = "🏁 Hedef Yap" }; t.Click += (o, e) => TxtTarget.Text = n.Id;
+            MenuItem d = new MenuItem { Header = "🗑️ Sil", Foreground = Brushes.Red }; d.Click += (o, e) => { SaveStateForUndo(); DeleteNode(n.Id); };
+            cm.Items.Add(s); cm.Items.Add(t); cm.Items.Add(new Separator()); cm.Items.Add(d); cm.IsOpen = true;
+        }
+
+        private void OpenCanvasContextMenu()
+        {
+            ContextMenu cm = new ContextMenu();
+            MenuItem a = new MenuItem { Header = "✨ Yeni Kişi" }; a.Click += (o, e) => { TxtNodeName.Text = "Yeni_" + (_myGraph.Nodes.Count + 1); };
+            cm.Items.Add(a); cm.IsOpen = true;
+        }
+        // XAML tarafında tanımlı ama kodda eksik olan Search butonu olayı
+        private void BtnSearch_Click(object sender, RoutedEventArgs e)
+        {
+            PerformSearch();
+        }
+
+        private void PerformSearch()
+        {
+            string q = TxtSearch.Text.Trim().ToLower();
+            if (string.IsNullOrEmpty(q)) return;
+
+            var fn = _myGraph.Nodes.FirstOrDefault(n => n.Name.ToLower().Contains(q));
+
+            if (fn != null)
+            {
+                ResetVisuals();
+                var vn = _viewer.Graph.FindNode(fn.Id);
+
+                if (vn != null)
+                    vn.Attr.FillColor = Microsoft.Msagl.Drawing.Color.Cyan;
+
+                _viewer.Graph = _viewer.Graph;
+                FillNodePanel(fn);
+                UpdateStatus($"Bulundu: {fn.Name}", StatusType.Success);
+            }
+            else
+            {
+                UpdateStatus("Kullanıcı bulunamadı.", StatusType.Error);
+            }
+        }
+
+        // --- DİĞER FONKSİYONLAR ---
+        private void BtnUndo_Click(object sender, RoutedEventArgs e) { var p = _undoManager.Undo(); if (p != null) { _myGraph = p; RefreshGraph(); ShowLegend("GERİ ALINDI", "Döndü."); } else WpfMsgBox.Show("Yok."); }
+
+        // --- RASTGELE AĞ BUTONU (DÜZELTİLDİ) ---
+        private void BtnRandomGraph_Click(object sender, RoutedEventArgs e)
+        {
+            SaveStateForUndo();
+
+            // YENİ KOD: Parametre vermeden çağırıyoruz, 0-100 arası rastgele yapıyor.
+            _myGraph = new RandomGraphGenerator().GenerateRandomized();
+
+            RefreshGraph();
+
+            // Hem durum çubuğuna hem de sağdaki bilgi paneline yazdıralım
+            UpdateStatus($"Rastgele ağ oluşturuldu. Düğüm Sayısı: {_myGraph.Nodes.Count}", StatusType.Success);
+            ShowLegend("RASTGELE", $"Oluşturulan Düğüm Sayısı: {_myGraph.Nodes.Count}");
+        }
+
+        private void TxtSearch_KeyDown(object sender, System.Windows.Input.KeyEventArgs e) { if (e.Key == System.Windows.Input.Key.Enter) PerformSearch(); }
+
+        // Analizler
+        private void BtnLinkPrediction_Click(object sender, RoutedEventArgs e) { var sw = Stopwatch.StartNew(); var s = new LinkPredictionAlgorithm().Execute(_myGraph); sw.Stop(); ShowLegend("ÖNERİLER", (s.Count > 0 ? string.Join("\n", s) : "Yok") + $"\n{GetElapsedTime(sw)}"); }
+        private void BtnBetweenness_Click(object sender, RoutedEventArgs e) { var sw = Stopwatch.StartNew(); var r = new BetweennessCentralityAlgorithm().Execute(_myGraph); sw.Stop(); ResetVisuals(); int c = 0; foreach (var kv in r) { if (c++ >= 3) break; var n = _viewer.Graph.FindNode(kv.Key.Id); if (n != null) { n.Attr.Shape = Shape.Diamond; n.Attr.FillColor = MsaglColor.Magenta; } } _viewer.Graph = _viewer.Graph; ShowLegend("KÖPRÜLER", string.Join("\n", r.Take(3).Select(x => $"{x.Key.Name} ({x.Value})")) + $"\n{GetElapsedTime(sw)}"); }
+        private void BtnAnalysis_Click(object sender, RoutedEventArgs e)
+        {
+            var sw = Stopwatch.StartNew();
+            var results = new DegreeCentralityAlgorithm().Execute(_myGraph);
+            sw.Stop();
+
+            ResetVisuals();
+            foreach (var item in results)
+            {
+                var n = _viewer.Graph.FindNode(item.Key.Id);
+                if (n != null) n.Attr.Color = MsaglColor.Gold;
+            }
+            _viewer.Graph = _viewer.Graph;
+
+            var tableText = "EN YÜKSEK 5 DÜĞÜM:\n─────────────────────\n";
+            int rank = 1;
+            foreach (var item in results.Take(5))
+            {
+                tableText += $"{rank}. {item.Key.Name}\n   Derece: {item.Value}\n";
+                rank++;
+            }
+            tableText += $"─────────────────────\nSüre: {GetElapsedTime(sw)}";
+
+            ShowLegend("DEGREE CENTRALITY", tableText);
+        }
+        private void BtnComponents_Click(object sender, RoutedEventArgs e) { var sw = Stopwatch.StartNew(); var c = new ConnectedComponentsAlgorithm().Execute(_myGraph); sw.Stop(); ResetVisuals(); Random r = new Random(); foreach (var l in c) { var col = new MsaglColor((byte)r.Next(255), (byte)r.Next(255), (byte)r.Next(255)); foreach (var n in l) { var vn = _viewer.Graph.FindNode(n.Id); if (vn != null) vn.Attr.FillColor = col; } } _viewer.Graph = _viewer.Graph; ShowLegend("TOPLULUK", $"Grup: {c.Count}\n{GetElapsedTime(sw)}"); }
+        private void BtnWelshPowell_Click(object sender, RoutedEventArgs e)
+        {
+            var sw = Stopwatch.StartNew();
+            var coloring = new WelshPowellAlgorithm().Execute(_myGraph);
+            sw.Stop();
+
+            ResetVisuals();
+            foreach (var item in coloring)
+            {
+                var n = _viewer.Graph.FindNode(item.Key.Id);
+                if (n != null) n.Attr.FillColor = item.Value;
+            }
+            _viewer.Graph = _viewer.Graph;
+
+            var tableText = "WELSH-POWELL BOYAMA:\n─────────────────────\n";
+            int colorIndex = 1;
+            var colorGroups = coloring.GroupBy(x => x.Value).ToList();
+            foreach (var group in colorGroups)
+            {
+                var color = group.Key;
+                tableText += $"Renk {colorIndex}: RGB({color.R},{color.G},{color.B})\n  Düğümler: {string.Join(", ", group.Select(x => x.Key.Name))}\n";
+                colorIndex++;
+            }
+            tableText += $"─────────────────────\nToplam Renk: {colorGroups.Count}\nSüre: {GetElapsedTime(sw)}";
+
+            ShowLegend("WELSH-POWELL", tableText);
+        }
+
+        // Algoritmalar
+        private void RunAlgo(IGraphAlgorithm alg, string name, MsaglColor color)
+        {
+            var s = _myGraph.Nodes.FirstOrDefault(x => x.Id == TxtSource.Text); var t = _myGraph.Nodes.FirstOrDefault(x => x.Id == TxtTarget.Text);
+            if (s == null || t == null) return; var sw = Stopwatch.StartNew(); var p = alg.Execute(_myGraph, s, t); sw.Stop();
+            if (p.Count > 0) { ResetVisuals(); foreach (var n in p) { var vn = _viewer.Graph.FindNode(n.Id); if (vn != null) vn.Attr.FillColor = color; } for (int i = 0; i < p.Count - 1; i++) { var u = p[i].Id; var v = p[i + 1].Id; var ed = _viewer.Graph.Edges.FirstOrDefault(x => (x.Source == u && x.Target == v) || (x.Source == v && x.Target == u)); if (ed != null) ed.Attr.Color = color; } _viewer.Graph = _viewer.Graph; ShowLegend(name, $"Adım: {p.Count - 1}\nMaliyet: {CalculatePathCost(p):F2}\n{GetElapsedTime(sw)}"); } else WpfMsgBox.Show("Yol yok.");
+        }
+        private void BtnRunDijkstra_Click(object sender, RoutedEventArgs e) => RunAlgo(new DijkstraAlgorithm(), "Dijkstra", MsaglColor.Red);
+        private void BtnRunAStar_Click(object sender, RoutedEventArgs e) => RunAlgo(new AStarAlgorithm(), "A*", MsaglColor.Orange);
+        private void BtnRunBFS_Click(object sender, RoutedEventArgs e) { var s = _myGraph.Nodes.FirstOrDefault(n => n.Id == TxtSource.Text); if (s != null) { var sw = Stopwatch.StartNew(); var r = new BFSAlgorithm().Execute(_myGraph, s); sw.Stop(); ResetVisuals(); foreach (var n in r) { var vn = _viewer.Graph.FindNode(n.Id); if (vn != null) vn.Attr.FillColor = MsaglColor.LightGreen; } _viewer.Graph = _viewer.Graph; ShowLegend("BFS", $"Erişilen: {r.Count}\n{GetElapsedTime(sw)}"); } }
+        private void BtnRunDFS_Click(object sender, RoutedEventArgs e) { var s = _myGraph.Nodes.FirstOrDefault(n => n.Id == TxtSource.Text); if (s != null) { var sw = Stopwatch.StartNew(); var r = new DFSAlgorithm().Execute(_myGraph, s); sw.Stop(); ResetVisuals(); foreach (var n in r) { var vn = _viewer.Graph.FindNode(n.Id); if (vn != null) vn.Attr.FillColor = MsaglColor.LightBlue; } _viewer.Graph = _viewer.Graph; ShowLegend("DFS", $"Erişilen: {r.Count}\n{GetElapsedTime(sw)}"); } }
+
+        // Diğer
+        private string GetElapsedTime(Stopwatch sw) => sw.Elapsed.TotalMilliseconds < 0.1 ? $"{sw.ElapsedTicks} Ticks" : $"{sw.Elapsed.TotalMilliseconds:F4} ms";
+        private double CalculatePathCost(List<CoreNode> path) { double c = 0; for (int i = 0; i < path.Count - 1; i++) { var e = _myGraph.Edges.FirstOrDefault(x => (x.Source == path[i] && x.Target == path[i + 1]) || (x.Source == path[i + 1] && x.Target == path[i])); if (e != null) c += e.Weight; } return c; }
+        private void BtnSimulate_Click(object sender, RoutedEventArgs e) { if (_simTimer.IsEnabled) { _simTimer.Stop(); BtnSimulate.Content = "BAŞLAT"; return; } if (_myGraph.Nodes.All(n => n.Id != TxtSource.Text)) return; ResetVisuals(); _infectedNodeIds = new List<string> { TxtSource.Text }; var sn = _viewer.Graph.FindNode(TxtSource.Text); if (sn != null) sn.Attr.FillColor = MsaglColor.Red; _viewer.Graph = _viewer.Graph; _simTimer.Start(); BtnSimulate.Content = "DURDUR"; }
+        private void SimTimer_Tick(object sender, EventArgs e) { var ni = new List<string>(); bool c = false; foreach (var id in _infectedNodeIds) { var nbs = _myGraph.Edges.Where(ed => ed.Source.Id == id || ed.Target.Id == id).Select(ed => ed.Source.Id == id ? ed.Target.Id : ed.Source.Id); foreach (var nid in nbs) { if (!_infectedNodeIds.Contains(nid) && !ni.Contains(nid) && _rnd.NextDouble() < 0.3) { ni.Add(nid); c = true; var n = _viewer.Graph.FindNode(nid); if (n != null) n.Attr.FillColor = MsaglColor.OrangeRed; } } } if (c) { _infectedNodeIds.AddRange(ni); _viewer.Graph = _viewer.Graph; TxtStatus.Text = $"Enfekte: {_infectedNodeIds.Count}"; } }
+        private void BtnReport_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                var html = GenerateHtmlReport();
+                var saveDialog = new Microsoft.Win32.SaveFileDialog
+                {
+                    Filter = "HTML Files|*.html",
+                    FileName = "graph_report.html"
+                };
+
+                if (saveDialog.ShowDialog() == true)
+                {
+                    File.WriteAllText(saveDialog.FileName, html);
+                    WpfMsgBox.Show("HTML raporu oluşturuldu!", "Başarılı", MessageBoxButton.OK, MessageBoxImage.Information);
+                }
+            }
+            catch (Exception ex)
+            {
+                WpfMsgBox.Show($"Rapor oluşturulurken hata: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private string GenerateHtmlReport()
+        {
+            var sb = new StringBuilder();
+            sb.AppendLine("<!DOCTYPE html>");
+            sb.AppendLine("<html lang='tr'>");
+            sb.AppendLine("<head>");
+            sb.AppendLine("<meta charset='UTF-8'>");
+            sb.AppendLine("<title>Graf Analiz Raporu</title>");
+            sb.AppendLine("<style>");
+            sb.AppendLine("body { font-family: Arial, sans-serif; margin: 20px; background: #f5f5f5; }");
+            sb.AppendLine("h1, h2 { color: #333; }");
+            sb.AppendLine("table { border-collapse: collapse; width: 100%; margin: 20px 0; background: white; }");
+            sb.AppendLine("th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }");
+            sb.AppendLine("th { background-color: #4CAF50; color: white; }");
+            sb.AppendLine("tr:nth-child(even) { background-color: #f2f2f2; }");
+            sb.AppendLine(".section { background: white; padding: 20px; margin: 20px 0; border-radius: 5px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }");
+            sb.AppendLine("</style>");
+            sb.AppendLine("</head>");
+            sb.AppendLine("<body>");
+
+            sb.AppendLine("<div class='section'>");
+            sb.AppendLine("<h1>Graf Analiz Raporu</h1>");
+            sb.AppendLine($"<p><strong>Düğüm Sayısı:</strong> {_myGraph.Nodes.Count}</p>");
+            sb.AppendLine($"<p><strong>Kenar Sayısı:</strong> {_myGraph.Edges.Count}</p>");
+            sb.AppendLine("</div>");
+
+            // Komşuluk Matrisi
+            sb.AppendLine("<div class='section'>");
+            sb.AppendLine("<h2>Komşuluk Matrisi</h2>");
+            sb.AppendLine("<table>");
+            sb.AppendLine("<tr><th></th>");
+            foreach (var node in _myGraph.Nodes.OrderBy(n => n.Id))
+            {
+                sb.AppendLine($"<th>{node.Id}</th>");
+            }
+            sb.AppendLine("</tr>");
+
+            foreach (var node1 in _myGraph.Nodes.OrderBy(n => n.Id))
+            {
+                sb.AppendLine($"<tr><th>{node1.Id}</th>");
+                foreach (var node2 in _myGraph.Nodes.OrderBy(n => n.Id))
+                {
+                    bool connected = _myGraph.Edges.Any(e =>
+                        (e.Source.Id == node1.Id && e.Target.Id == node2.Id) ||
+                        (e.Source.Id == node2.Id && e.Target.Id == node1.Id));
+                    var weight = _myGraph.Edges.FirstOrDefault(e =>
+                        (e.Source.Id == node1.Id && e.Target.Id == node2.Id) ||
+                        (e.Source.Id == node2.Id && e.Target.Id == node1.Id))?.Weight ?? 0;
+
+                    if (node1.Id == node2.Id)
+                        sb.AppendLine("<td>-</td>");
+                    else
+                        sb.AppendLine($"<td>{(connected ? weight.ToString("F4") : "0")}</td>");
+                }
+                sb.AppendLine("</tr>");
+            }
+            sb.AppendLine("</table>");
+            sb.AppendLine("</div>");
+
+            // Komşuluk Listesi
+            sb.AppendLine("<div class='section'>");
+            sb.AppendLine("<h2>Komşuluk Listesi</h2>");
+            sb.AppendLine("<table>");
+            sb.AppendLine("<tr><th>Düğüm</th><th>Komşular</th></tr>");
+            foreach (var node in _myGraph.Nodes.OrderBy(n => n.Id))
+            {
+                var neighbors = _myGraph.Edges
+                    .Where(e => e.Source.Id == node.Id || e.Target.Id == node.Id)
+                    .Select(e => e.Source.Id == node.Id ? e.Target.Id : e.Source.Id)
+                    .OrderBy(id => id)
+                    .ToList();
+                sb.AppendLine($"<tr><td>{node.Id}</td><td>{string.Join(", ", neighbors)}</td></tr>");
+            }
+            sb.AppendLine("</table>");
+            sb.AppendLine("</div>");
+
+            // Degree Centrality
+            var degreeResults = new DegreeCentralityAlgorithm().Execute(_myGraph);
+            sb.AppendLine("<div class='section'>");
+            sb.AppendLine("<h2>Degree Centrality - En Yüksek 5 Düğüm</h2>");
+            sb.AppendLine("<table>");
+            sb.AppendLine("<tr><th>Sıra</th><th>Düğüm</th><th>Derece</th></tr>");
+            int rank = 1;
+            foreach (var item in degreeResults.Take(5))
+            {
+                sb.AppendLine($"<tr><td>{rank}</td><td>{item.Key.Name}</td><td>{item.Value}</td></tr>");
+                rank++;
+            }
+            sb.AppendLine("</table>");
+            sb.AppendLine("</div>");
+
+            // Welsh-Powell Boyama Tablosu
+            var coloring = new WelshPowellAlgorithm().Execute(_myGraph);
+            sb.AppendLine("<div class='section'>");
+            sb.AppendLine("<h2>Welsh-Powell Graf Boyama Sonuçları</h2>");
+            sb.AppendLine("<table>");
+            sb.AppendLine("<tr><th>Düğüm</th><th>Renk (RGB)</th></tr>");
+            foreach (var item in coloring.OrderBy(x => x.Key.Id))
+            {
+                var color = item.Value;
+                sb.AppendLine($"<tr><td>{item.Key.Name}</td><td style='background-color: rgb({color.R},{color.G},{color.B});'>RGB({color.R}, {color.G}, {color.B})</td></tr>");
+            }
+            sb.AppendLine("</table>");
+            sb.AppendLine("</div>");
+
+            sb.AppendLine("</body>");
+            sb.AppendLine("</html>");
+            return sb.ToString();
+        }
+        private void BtnClear_Click(object sender, RoutedEventArgs e) { SaveStateForUndo(); _myGraph.Clear(); RefreshGraph(); LegendPanel.Visibility = Visibility.Collapsed; }
+        private void BtnLoadGraph_Click(object sender, RoutedEventArgs e) { try { SaveStateForUndo(); _myGraph = new FileManager().LoadGraph("social_network.csv"); RefreshGraph(); } catch { } }
+        private void BtnLoadJson_Click(object sender, RoutedEventArgs e) { var d = new Microsoft.Win32.OpenFileDialog { Filter = "JSON|*.json" }; if (d.ShowDialog() == true) { SaveStateForUndo(); _myGraph = new FileManager().LoadGraphFromJson(d.FileName); RefreshGraph(); } }
+        private void BtnExport_Click(object sender, RoutedEventArgs e) { var fm = new FileManager(); fm.SaveGraph(_myGraph, "saved.csv"); fm.SaveGraphToJson(_myGraph, "saved.json"); WpfMsgBox.Show("Kaydedildi"); }
+
+        // Yedek Yönetimi
+        private void BtnSaveBackup_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                string backupName = TxtBackupName.Text.Trim();
+                if (string.IsNullOrWhiteSpace(backupName) || backupName == "Yedek Adı...")
+                {
+                    backupName = $"Yedek_{DateTime.Now:yyyyMMdd_HHmmss}";
+                }
+
+                string backupId = _backupManager.SaveBackup(_myGraph, backupName);
+                TxtBackupName.Text = "Yedek Adı...";
+                TxtBackupName.Foreground = Brushes.Gray;
+                string backupPath = Path.Combine(Directory.GetCurrentDirectory(), "backups");
+                WpfMsgBox.Show($"Yedek kaydedildi!\n\nAdı: {backupName}\nKonum: {backupPath}\nToplam Yedek: {_backupManager.GetBackupCount()}/30", "Başarılı", MessageBoxButton.OK, MessageBoxImage.Information);
+
+                if (BackupListPanel.Visibility == Visibility.Visible)
+                {
+                    RefreshBackupList();
+                }
+            }
+            catch (Exception ex)
+            {
+                WpfMsgBox.Show($"Yedek kaydedilirken hata: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        // Bildirim kutusunu (LegendPanel) kapatan özel kod
+        private void BtnCloseLegend_Click(object sender, RoutedEventArgs e)
+        {
+            if (LegendPanel != null)
+            {
+                LegendPanel.Visibility = Visibility.Collapsed;
+            }
+        }
+        private void BtnShowBackups_Click(object sender, RoutedEventArgs e)
+        {
+            if (BackupListPanel.Visibility == Visibility.Visible)
+            {
+                BackupListPanel.Visibility = Visibility.Collapsed;
+            }
+            else
+            {
+                BackupListPanel.Visibility = Visibility.Visible;
+                RefreshBackupList();
+            }
+        }
+
+        private void RefreshBackupList()
+        {
+            BackupListContainer.Children.Clear();
+
+            var backups = _backupManager.GetAllBackups();
+
+            if (backups.Count == 0)
+            {
+                var emptyText = new TextBlock
+                {
+                    Text = "Henüz yedek yok.",
+                    Foreground = Brushes.Gray,
+                    FontSize = 11,
+                    Margin = new Thickness(0, 5, 0, 5)
+                };
+                BackupListContainer.Children.Add(emptyText);
+                return;
+            }
+
+            foreach (var backup in backups)
+            {
+                var border = new Border
+                {
+                    Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(30, 41, 59)),
+                    BorderBrush = new SolidColorBrush(System.Windows.Media.Color.FromRgb(71, 85, 105)),
+                    BorderThickness = new Thickness(1),
+                    CornerRadius = new CornerRadius(4),
+                    Margin = new Thickness(0, 0, 0, 8),
+                    Padding = new Thickness(10)
+                };
+
+                var stackPanel = new StackPanel();
+
+                var nameText = new TextBlock
+                {
+                    Text = backup.Name,
+                    Foreground = Brushes.White,
+                    FontSize = 12,
+                    FontWeight = FontWeights.Bold,
+                    Margin = new Thickness(0, 0, 0, 5)
+                };
+                stackPanel.Children.Add(nameText);
+
+                var infoText = new TextBlock
+                {
+                    Text = $"📊 {backup.NodeCount} Düğüm | {backup.EdgeCount} Kenar\n🕐 {backup.CreatedAt:dd.MM.yyyy HH:mm:ss}",
+                    Foreground = Brushes.Gray,
+                    FontSize = 10,
+                    Margin = new Thickness(0, 0, 0, 8)
+                };
+                stackPanel.Children.Add(infoText);
+
+                // ENTEGRE DÜZELTME: Tam ad alanı (namespace) kullanarak Orientation çakışmasını çözdük
+                var buttonPanel = new StackPanel { Orientation = System.Windows.Controls.Orientation.Horizontal };
+
+                // ENTEGRE DÜZELTME: Tam ad alanı kullanarak Button çakışmasını çözdük
+                var loadBtn = new System.Windows.Controls.Button
+                {
+                    Content = "📥 YÜKLE",
+                    Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(16, 185, 129)),
+                    Foreground = Brushes.White,
+                    FontSize = 10,
+                    Padding = new Thickness(8, 4, 8, 4),
+                    Margin = new Thickness(0, 0, 5, 0),
+                    Tag = backup.Id
+                };
+                loadBtn.Click += BtnLoadBackup_Click;
+                buttonPanel.Children.Add(loadBtn);
+
+                var deleteBtn = new System.Windows.Controls.Button
+                {
+                    Content = "🗑️ SİL",
+                    Background = new SolidColorBrush(System.Windows.Media.Color.FromRgb(239, 68, 68)),
+                    Foreground = Brushes.White,
+                    FontSize = 10,
+                    Padding = new Thickness(8, 4, 8, 4),
+                    Tag = backup.Id
+                };
+                deleteBtn.Click += BtnDeleteBackup_Click;
+                buttonPanel.Children.Add(deleteBtn);
+
+                stackPanel.Children.Add(buttonPanel);
+                border.Child = stackPanel;
+                BackupListContainer.Children.Add(border);
+            }
+
+            var countText = new TextBlock
+            {
+                Text = $"Toplam: {backups.Count}/30 yedek",
+                Foreground = Brushes.Gray,
+                FontSize = 9,
+                Margin = new Thickness(0, 10, 0, 0),
+                HorizontalAlignment = System.Windows.HorizontalAlignment.Center
+            };
+            BackupListContainer.Children.Add(countText);
+        }
+
+        private void BtnLoadBackup_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // ENTEGRE DÜZELTME: Sender cast işlemi
+                var button = sender as System.Windows.Controls.Button;
+                if (button?.Tag is string backupId)
+                {
+                    SaveStateForUndo();
+                    var loadedGraph = _backupManager.LoadBackup(backupId);
+                    if (loadedGraph != null)
+                    {
+                        _myGraph = loadedGraph;
+                        RefreshGraph();
+                        WpfMsgBox.Show("Yedek yüklendi!", "Başarılı", MessageBoxButton.OK, MessageBoxImage.Information);
+                    }
+                    else
+                    {
+                        WpfMsgBox.Show("Yedek yüklenemedi!", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                WpfMsgBox.Show($"Yedek yüklenirken hata: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+
+        private void BtnDeleteBackup_Click(object sender, RoutedEventArgs e)
+        {
+            try
+            {
+                // ENTEGRE DÜZELTME: Sender cast işlemi
+                var button = sender as System.Windows.Controls.Button;
+                if (button?.Tag is string backupId)
+                {
+                    var result = WpfMsgBox.Show("Bu yedeği silmek istediğinize emin misiniz?", "Onay", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                    if (result == MessageBoxResult.Yes)
+                    {
+                        if (_backupManager.DeleteBackup(backupId))
+                        {
+                            RefreshBackupList();
+                            WpfMsgBox.Show("Yedek silindi!", "Başarılı", MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
+                        else
+                        {
+                            WpfMsgBox.Show("Yedek silinemedi!", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                WpfMsgBox.Show($"Yedek silinirken hata: {ex.Message}", "Hata", MessageBoxButton.OK, MessageBoxImage.Error);
+            }
+        }
+        private void FillNodePanel(CoreNode n)
+        {
+            _myGraph.UpdateConnectionCounts();
+
+            TxtNodeName.Text = n.Name;
+            TxtAct.Text = n.Activity.ToString("F2");
+            TxtInt.Text = n.Interaction.ToString("F2");
+            TxtConn.Text = n.ConnectionCount.ToString();
+        }
+        private void ShowLegend(string t, string d) { LegendPanel.Visibility = Visibility.Visible; LegendTitle.Text = t; LegendText.Text = d; }
+        private void BtnAddNode_Click(object sender, RoutedEventArgs e)
+        {
+            SaveStateForUndo();
+            double.TryParse(TxtAct.Text, out double a);
+            double.TryParse(TxtInt.Text, out double i);
+            int.TryParse(TxtConn.Text, out int c);
+
+            var n = _myGraph.Nodes.FirstOrDefault(x => x.Id == TxtNodeName.Text)
+                ?? new CoreNode(TxtNodeName.Text, TxtNodeName.Text, a, i, c);
+
+            bool isUpdate = _myGraph.Nodes.Contains(n);
+            n.Activity = a;
+            n.Interaction = i;
+            n.ConnectionCount = c;
+
+            _myGraph.AddNode(n);
+
+            _myGraph.UpdateConnectionCounts();
+
+            if (isUpdate)
+            {
+                foreach (var edge in _myGraph.Edges.Where(e => e.Source.Id == n.Id || e.Target.Id == n.Id))
+                {
+                    var otherNode = edge.Source.Id == n.Id ? edge.Target : edge.Source;
+                    edge.Weight = Core.Graph.CalculateDynamicWeight(n, otherNode);
+                }
+            }
+
+            RefreshGraph();
+        }
+        private void BtnAddEdge_Click(object sender, RoutedEventArgs e)
+        {
+            var s = _myGraph.Nodes.FirstOrDefault(x => x.Id == TxtSource.Text);
+            var t = _myGraph.Nodes.FirstOrDefault(x => x.Id == TxtTarget.Text);
+            if (s != null && t != null)
+            {
+                if (s.Id == t.Id)
+                {
+                    WpfMsgBox.Show("Self-loop yasak.");
+                    return;
+                }
+
+                bool exists = _myGraph.Edges.Any(ed =>
+                    (ed.Source.Id == s.Id && ed.Target.Id == t.Id) ||
+                    (ed.Source.Id == t.Id && ed.Target.Id == s.Id));
+
+                if (exists)
+                {
+                    WpfMsgBox.Show("Bu bağlantı zaten var.");
+                    return;
+                }
+
+                SaveStateForUndo();
+                double w = CalculateDynamicWeight(s, t);
+                _myGraph.AddEdge(s, t, w);
+                RefreshGraph();
+                ShowLegend("BAĞLANTI", $"Maliyet: {w:F4}");
+            }
+            else
+            {
+                WpfMsgBox.Show("Seçim yap.");
+            }
+        }
+        private double CalculateDynamicWeight(CoreNode n1, CoreNode n2)
+        {
+            return Core.Graph.CalculateDynamicWeight(n1, n2);
+        }
+        private void DeleteNode(string id)
+        {
+            var n = _myGraph.Nodes.FirstOrDefault(x => x.Id == id);
+            if (n != null)
+            {
+                _myGraph.Nodes.Remove(n);
+                _myGraph.Edges.RemoveAll(x => x.Source.Id == id || x.Target.Id == id);
+                _myGraph.UpdateConnectionCounts();
+                RefreshGraph();
+            }
+        }
+        // Durum çubuğunu güncelleyen yardımcı metot
+        private void UpdateStatus(string msg, StatusType type)
+        {
+            if (TxtStatus == null) return;
+
+            TxtStatus.Text = msg;
+            if (TxtStatusIcon != null)
+            {
+                switch (type)
+                {
+                    case StatusType.Info:
+                        TxtStatusIcon.Text = "ℹ️";
+                        TxtStatus.Foreground = System.Windows.Media.Brushes.White;
+                        break;
+                    case StatusType.Success:
+                        TxtStatusIcon.Text = "🟢";
+                        TxtStatus.Foreground = System.Windows.Media.Brushes.LightGreen;
+                        break;
+                    case StatusType.Warning:
+                        TxtStatusIcon.Text = "⚠️";
+                        TxtStatus.Foreground = System.Windows.Media.Brushes.Orange;
+                        break;
+                    case StatusType.Error:
+                        TxtStatusIcon.Text = "⛔";
+                        TxtStatus.Foreground = System.Windows.Media.Brushes.Red;
+                        break;
+                }
+            }
+        }
+    }
 }

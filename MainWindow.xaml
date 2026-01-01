@@ -1,264 +1,407 @@
 ﻿<Window x:Class="SocialNetworkGraph.App.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:local="clr-namespace:SocialNetworkGraph.App"
-        mc:Ignorable="d"
-        Title="Sosyal Ağ Analizi - Network Graph Analyzer" Height="800" Width="1400" 
-        WindowStartupLocation="CenterScreen" Background="#F0F2F5">
-	
+        Title="Cyber-Analyst Pro v6.0 - Elite Edition" Height="950" Width="1600"
+        WindowState="Maximized" Background="#0F172A" FontFamily="Segoe UI">
+
 	<Window.Resources>
-		<!-- Modern Button Style -->
-		<Style TargetType="Button" x:Key="ModernButton">
-			<Setter Property="FontSize" Value="13"/>
-			<Setter Property="FontWeight" Value="SemiBold"/>
+		<SolidColorBrush x:Key="PrimaryCyan" Color="#22D3EE"/>
+		<SolidColorBrush x:Key="PrimaryPurple" Color="#C084FC"/>
+		<SolidColorBrush x:Key="BgDark" Color="#0F172A"/>
+		<SolidColorBrush x:Key="BgCard" Color="#1E293B"/>
+		<SolidColorBrush x:Key="TextMuted" Color="#94A3B8"/>
+		<SolidColorBrush x:Key="Danger" Color="#F43F5E"/>
+		<SolidColorBrush x:Key="Success" Color="#10B981"/>
+
+		<Style TargetType="Expander">
+			<Setter Property="Foreground" Value="White"/>
+			<Setter Property="Background" Value="#1E293B"/>
+			<Setter Property="BorderBrush" Value="#334155"/>
+			<Setter Property="BorderThickness" Value="1"/>
+			<Setter Property="Margin" Value="0,0,0,10"/>
+			<Setter Property="Padding" Value="10"/>
+			<Setter Property="IsExpanded" Value="False"/>
+			<Setter Property="HeaderTemplate">
+				<Setter.Value>
+					<DataTemplate>
+						<TextBlock Text="{Binding}" FontWeight="Bold" FontSize="11" Foreground="{StaticResource PrimaryCyan}"/>
+					</DataTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+
+		<Style x:Key="BtnPrimary" TargetType="Button">
+			<Setter Property="Background" Value="{StaticResource PrimaryCyan}"/>
+			<Setter Property="Foreground" Value="#0F172A"/>
+			<Setter Property="FontWeight" Value="Bold"/>
 			<Setter Property="Padding" Value="15,10"/>
-			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="Margin" Value="0,0,0,8"/>
 			<Setter Property="BorderThickness" Value="0"/>
+			<Setter Property="Cursor" Value="Hand"/>
 			<Setter Property="Template">
 				<Setter.Value>
 					<ControlTemplate TargetType="Button">
-						<Border Background="{TemplateBinding Background}" CornerRadius="6" 
-								Padding="{TemplateBinding Padding}">
+						<Border x:Name="border" Background="{TemplateBinding Background}" CornerRadius="6">
 							<ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
 						</Border>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsMouseOver" Value="True">
+								<Setter TargetName="border" Property="Background" Value="#67E8F9"/>
+								<Setter TargetName="border" Property="Effect">
+									<Setter.Value>
+										<DropShadowEffect Color="#22D3EE" BlurRadius="10" ShadowDepth="0" Opacity="0.6"/>
+									</Setter.Value>
+								</Setter>
+							</Trigger>
+						</ControlTemplate.Triggers>
 					</ControlTemplate>
 				</Setter.Value>
 			</Setter>
-			<Style.Triggers>
-				<Trigger Property="IsMouseOver" Value="True">
-					<Setter Property="Opacity" Value="0.85"/>
-				</Trigger>
-			</Style.Triggers>
 		</Style>
-		
-		<!-- Card Style -->
-		<Style TargetType="Border" x:Key="CardStyle">
-			<Setter Property="Background" Value="White"/>
-			<Setter Property="BorderBrush" Value="#E1E8ED"/>
+
+		<Style x:Key="BtnSecondary" TargetType="Button">
+			<Setter Property="Background" Value="#0F172A"/>
+			<Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+			<Setter Property="BorderBrush" Value="#334155"/>
 			<Setter Property="BorderThickness" Value="1"/>
-			<Setter Property="CornerRadius" Value="8"/>
-			<Setter Property="Padding" Value="15"/>
-			<Setter Property="Margin" Value="0,0,0,15"/>
+			<Setter Property="Padding" Value="10,8"/>
+			<Setter Property="Margin" Value="0,0,0,8"/>
+			<Setter Property="Cursor" Value="Hand"/>
+			<Setter Property="FontSize" Value="11"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="Button">
+						<Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="6">
+							<ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+						</Border>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsMouseOver" Value="True">
+								<Setter TargetName="border" Property="Background" Value="#1E293B"/>
+								<Setter TargetName="border" Property="BorderBrush" Value="White"/>
+								<Setter Property="Foreground" Value="White"/>
+							</Trigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+
+		<Style TargetType="TextBox">
+			<Setter Property="Background" Value="#0F172A"/>
+			<Setter Property="Foreground" Value="White"/>
+			<Setter Property="BorderBrush" Value="#334155"/>
+			<Setter Property="Padding" Value="8"/>
+			<Setter Property="Margin" Value="0,0,0,10"/>
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="TextBox">
+						<Border x:Name="border" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="4">
+							<ScrollViewer x:Name="PART_ContentHost"/>
+						</Border>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsFocused" Value="True">
+								<Setter TargetName="border" Property="BorderBrush" Value="{StaticResource PrimaryCyan}"/>
+							</Trigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
+		</Style>
+
+		<Style TargetType="TabItem">
+			<Setter Property="Template">
+				<Setter.Value>
+					<ControlTemplate TargetType="TabItem">
+						<Border x:Name="Border" Padding="15,12" Margin="0,0,5,0" Background="Transparent" CornerRadius="6">
+							<ContentPresenter VerticalAlignment="Center" HorizontalAlignment="Center" ContentSource="Header"/>
+						</Border>
+						<ControlTemplate.Triggers>
+							<Trigger Property="IsSelected" Value="True">
+								<Setter TargetName="Border" Property="Background" Value="#1E293B"/>
+								<Setter Property="Foreground" Value="{StaticResource PrimaryCyan}"/>
+								<Setter Property="FontWeight" Value="Bold"/>
+							</Trigger>
+							<Trigger Property="IsSelected" Value="False">
+								<Setter Property="Foreground" Value="{StaticResource TextMuted}"/>
+							</Trigger>
+						</ControlTemplate.Triggers>
+					</ControlTemplate>
+				</Setter.Value>
+			</Setter>
 		</Style>
 	</Window.Resources>
 
 	<Grid>
-		<Grid.RowDefinitions>
-			<RowDefinition Height="Auto"/>
-			<RowDefinition Height="*"/>
-			<RowDefinition Height="Auto"/>
-		</Grid.RowDefinitions>
+		<Grid.ColumnDefinitions>
+			<ColumnDefinition Width="350"/>
+			<ColumnDefinition Width="*"/>
+		</Grid.ColumnDefinitions>
 
-		<!-- Üst Toolbar -->
-		<Border Grid.Row="0" Background="White" BorderBrush="#E1E8ED" BorderThickness="0,0,0,1" Padding="20,15">
-			<Grid>
-				<Grid.ColumnDefinitions>
-					<ColumnDefinition Width="Auto"/>
-					<ColumnDefinition Width="*"/>
-					<ColumnDefinition Width="Auto"/>
-				</Grid.ColumnDefinitions>
-				
-				<StackPanel Grid.Column="0" Orientation="Horizontal">
-					<TextBlock Text="📊" FontSize="28" VerticalAlignment="Center" Margin="0,0,10,0"/>
-					<StackPanel VerticalAlignment="Center">
-						<TextBlock Text="Network Graph Analyzer" FontSize="20" FontWeight="Bold" Foreground="#1DA1F2"/>
-						<TextBlock Text="Sosyal Ağ Analizi ve Görselleştirme" FontSize="11" Foreground="#657786"/>
-					</StackPanel>
-				</StackPanel>
-				
-				<StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
-					<Button Name="BtnQuickStart" Content="🚀 Hızlı Başlangıç" Style="{StaticResource ModernButton}" 
-							Background="#1DA1F2" Foreground="White" Margin="0,0,10,0" Click="BtnQuickStart_Click"
-							ToolTip="Örnek veri seti ile hızlı başlangıç yapın"/>
-					<Button Name="BtnLoadSample" Content="📁 Örnek Yükle" Style="{StaticResource ModernButton}" 
-							Background="#4CAF50" Foreground="White" Margin="0,0,10,0" Click="BtnLoadGraph_Click"
-							ToolTip="CSV dosyasından veri yükleyin"/>
-					<Button Name="BtnSave" Content="💾 Kaydet" Style="{StaticResource ModernButton}" 
-							Background="#607D8B" Foreground="White" Click="BtnExport_Click"
-							ToolTip="Mevcut grafı kaydedin"/>
-				</StackPanel>
-			</Grid>
-		</Border>
-
-		<!-- Ana İçerik -->
-		<Grid Grid.Row="1">
-			<Grid.ColumnDefinitions>
-				<ColumnDefinition Width="380"/>
-				<ColumnDefinition Width="*"/>
-			</Grid.ColumnDefinitions>
-
-			<!-- Sol Panel - Basitleştirilmiş -->
-			<ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Background="#F7F9FA" Padding="15">
-				<StackPanel>
-					<!-- Hızlı İşlemler -->
-					<Border Style="{StaticResource CardStyle}">
-						<StackPanel>
-							<TextBlock Text="⚡ Hızlı İşlemler" FontSize="16" FontWeight="Bold" Foreground="#14171A" Margin="0,0,0,12"/>
-							
-							<TextBlock Text="Kaynak:" FontSize="12" Foreground="#657786" Margin="0,0,0,5"/>
-							<TextBox Name="TxtSource" Height="35" FontSize="13" Padding="10" 
-									 BorderBrush="#E1E8ED" BorderThickness="1" Margin="0,0,0,10"
-									 ToolTip="Başlangıç düğümü"/>
-							
-							<TextBlock Text="Hedef:" FontSize="12" Foreground="#657786" Margin="0,0,0,5"/>
-							<TextBox Name="TxtTarget" Height="35" FontSize="13" Padding="10" 
-									 BorderBrush="#E1E8ED" BorderThickness="1" Margin="0,0,0,15"
-									 ToolTip="Hedef düğüm"/>
-							
-							<Button Name="BtnAddConnection" Content="🔗 Bağlantı Ekle" 
-									Style="{StaticResource ModernButton}" Background="#1DA1F2" Foreground="White"
-									Click="BtnAddEdge_Click" Margin="0,0,0,8"/>
-							<Button Name="BtnFindPath" Content="🔍 Yol Bul" 
-									Style="{StaticResource ModernButton}" Background="#4CAF50" Foreground="White"
-									Click="BtnRunDijkstra_Click"/>
-						</StackPanel>
-					</Border>
-
-					<!-- Düğüm Yönetimi -->
-					<Border Style="{StaticResource CardStyle}">
-						<StackPanel>
-							<TextBlock Text="👤 Düğüm Yönetimi" FontSize="16" FontWeight="Bold" Foreground="#14171A" Margin="0,0,0,12"/>
-							
-							<TextBlock Text="İsim:" FontSize="12" Foreground="#657786" Margin="0,0,0,5"/>
-							<TextBox Name="TxtAddNodeName" Height="35" FontSize="13" Padding="10" 
-									 BorderBrush="#E1E8ED" BorderThickness="1" Margin="0,0,0,10"/>
-							
-							<Grid Margin="0,0,0,10">
-								<Grid.ColumnDefinitions>
-									<ColumnDefinition Width="*"/>
-									<ColumnDefinition Width="*"/>
-									<ColumnDefinition Width="*"/>
-								</Grid.ColumnDefinitions>
-								<StackPanel Grid.Column="0" Margin="0,0,5,0">
-									<TextBlock Text="Aktiflik" FontSize="11" Foreground="#657786" Margin="0,0,0,3"/>
-									<TextBox Name="TxtAddNodeAct" Text="0.5" Height="30" FontSize="12" Padding="8"/>
-								</StackPanel>
-								<StackPanel Grid.Column="1" Margin="5,0">
-									<TextBlock Text="Etkileşim" FontSize="11" Foreground="#657786" Margin="0,0,0,3"/>
-									<TextBox Name="TxtAddNodeInt" Text="5" Height="30" FontSize="12" Padding="8"/>
-								</StackPanel>
-								<StackPanel Grid.Column="2" Margin="5,0,0,0">
-									<TextBlock Text="Bağ Say." FontSize="11" Foreground="#657786" Margin="0,0,0,3"/>
-									<TextBox Name="TxtAddNodeConn" Text="0" Height="30" FontSize="12" Padding="8"/>
-								</StackPanel>
-							</Grid>
-							
-							<Button Name="BtnAddNode" Content="➕ Düğüm Ekle" 
-									Style="{StaticResource ModernButton}" Background="#50C878" Foreground="White"
-									Click="BtnAddNode_Click" Margin="0,0,0,10"/>
-							
-							<Button Name="BtnDeleteNode" Content="🗑️ Düğüm Sil" 
-									Style="{StaticResource ModernButton}" Background="#E0245E" Foreground="White"
-									Click="BtnDeleteNode_Click"/>
-						</StackPanel>
-					</Border>
-
-					<!-- Analiz Algoritmaları -->
-					<Border Style="{StaticResource CardStyle}">
-						<StackPanel>
-							<TextBlock Text="📈 Analiz Algoritmaları" FontSize="16" FontWeight="Bold" Foreground="#14171A" Margin="0,0,0,12"/>
-							
-							<Button Name="BtnRunBFS" Content="🔍 BFS - Erişilebilirlik" 
-									Style="{StaticResource ModernButton}" Background="#00BCD4" Foreground="White"
-									Click="BtnRunBFS_Click" Margin="0,0,0,8"
-									ToolTip="Bir düğümden erişilebilen tüm düğümleri bulur"/>
-							<Button Name="BtnRunDFS" Content="🕵️ DFS - Derinlemesine" 
-									Style="{StaticResource ModernButton}" Background="#9C27B0" Foreground="White"
-									Click="BtnRunDFS_Click" Margin="0,0,0,8"
-									ToolTip="Derinlemesine arama yapar"/>
-							<Button Name="BtnRunDijkstra" Content="🚀 Dijkstra - En Kısa Yol" 
-									Style="{StaticResource ModernButton}" Background="#FF9800" Foreground="White"
-									Click="BtnRunDijkstra_Click" Margin="0,0,0,8"
-									ToolTip="İki düğüm arasındaki en kısa yolu bulur"/>
-							<Button Name="BtnRunAStar" Content="⭐ A* - Gelişmiş Yol Bulma" 
-									Style="{StaticResource ModernButton}" Background="#FFD700" Foreground="White"
-									Click="BtnRunAStar_Click" Margin="0,0,0,8"
-									ToolTip="Heuristik kullanarak en kısa yolu bulur"/>
-							<Button Name="BtnComponents" Content="🧩 Topluluk Analizi" 
-									Style="{StaticResource ModernButton}" Background="#2196F3" Foreground="White"
-									Click="BtnComponents_Click" Margin="0,0,0,8"
-									ToolTip="Ayrık toplulukları bulur ve renklendirir"/>
-							<Button Name="BtnWelshPowell" Content="🎨 Graf Renklendirme" 
-									Style="{StaticResource ModernButton}" Background="#E91E63" Foreground="White"
-									Click="BtnWelshPowell_Click" Margin="0,0,0,8"
-									ToolTip="Komşu düğümleri farklı renklerle boyar"/>
-							<Button Name="BtnAnalysis" Content="📊 En Etkili Kullanıcılar" 
-									Style="{StaticResource ModernButton}" Background="#4CAF50" Foreground="White"
-									Click="BtnAnalysis_Click"
-									ToolTip="En yüksek bağlantı sayısına sahip kullanıcıları bulur"/>
-						</StackPanel>
-					</Border>
-
-					<!-- Dosya İşlemleri -->
-					<Border Style="{StaticResource CardStyle}">
-						<StackPanel>
-							<TextBlock Text="📁 Dosya İşlemleri" FontSize="16" FontWeight="Bold" Foreground="#14171A" Margin="0,0,0,12"/>
-							
-							<Button Name="BtnLoadJson" Content="📂 JSON Yükle" 
-									Style="{StaticResource ModernButton}" Background="#673AB7" Foreground="White"
-									Click="BtnLoadJson_Click" Margin="0,0,0,8"/>
-							<Button Name="BtnExportJson" Content="💾 JSON Kaydet" 
-									Style="{StaticResource ModernButton}" Background="#9C27B0" Foreground="White"
-									Click="BtnExportJson_Click" Margin="0,0,0,8"/>
-							<Button Name="BtnMatrix" Content="🔢 Komşuluk Matrisi" 
-									Style="{StaticResource ModernButton}" Background="#FFC107" Foreground="White"
-									Click="BtnMatrix_Click" Margin="0,0,0,8"/>
-							<Button Name="BtnClear" Content="🗑️ Temizle" 
-									Style="{StaticResource ModernButton}" Background="#F44336" Foreground="White"
-									Click="BtnClear_Click"/>
-						</StackPanel>
-					</Border>
-				</StackPanel>
-			</ScrollViewer>
-
-			<!-- Sağ Panel - Graf Görselleştirme -->
-			<Grid Grid.Column="1" Margin="15">
+		<Border Grid.Column="0" Background="{StaticResource BgCard}" BorderBrush="#334155" BorderThickness="0,0,1,0">
+			<Grid Margin="15">
 				<Grid.RowDefinitions>
+					<RowDefinition Height="Auto"/>
 					<RowDefinition Height="*"/>
 					<RowDefinition Height="Auto"/>
 				</Grid.RowDefinitions>
-				
-				<!-- Graf Container -->
-				<Border Name="GraphContainer" Grid.Row="0" Background="White" 
-						BorderBrush="#E1E8ED" BorderThickness="2" CornerRadius="8">
-					<Grid>
-						<TextBlock Text="📊 Graf görselleştirmesi burada görünecek&#x0a;&#x0a;Üst menüden 'Hızlı Başlangıç' veya 'Örnek Yükle' butonuna tıklayarak başlayın" 
-								   HorizontalAlignment="Center" VerticalAlignment="Center" 
-								   Foreground="#CCCCCC" FontSize="16" TextAlignment="Center" 
-								   TextWrapping="Wrap" Margin="20"/>
-					</Grid>
-				</Border>
-				
-				<!-- Bilgi Paneli -->
-				<Border Grid.Row="1" Background="#F7F9FA" BorderBrush="#E1E8ED" BorderThickness="1" 
-						CornerRadius="6" Margin="0,10,0,0" Padding="15">
-					<Grid>
-						<Grid.ColumnDefinitions>
-							<ColumnDefinition Width="*"/>
-							<ColumnDefinition Width="Auto"/>
-						</Grid.ColumnDefinitions>
-						
-						<ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" MaxHeight="120">
-							<TextBlock Name="TxtInfoPanel" Text="ℹ️ Hazır: Hızlı Başlangıç butonuna tıklayarak örnek veri ile başlayabilirsiniz." 
-									   FontSize="12" Foreground="#657786" TextWrapping="Wrap"/>
-						</ScrollViewer>
-						
-						<Border Grid.Column="1" Background="White" BorderBrush="#E1E8ED" BorderThickness="1" 
-								CornerRadius="6" Padding="12,8" Margin="15,0,0,0">
-							<TextBlock Name="TxtStats" Text="📊 0 düğüm | 0 bağlantı" 
-									   FontSize="13" FontWeight="Bold" Foreground="#1DA1F2"/>
-						</Border>
-					</Grid>
-				</Border>
-			</Grid>
-		</Grid>
 
-		<!-- Alt Durum Çubuğu -->
-		<Border Grid.Row="2" Background="White" BorderBrush="#E1E8ED" BorderThickness="0,1,0,0" Padding="20,10">
-			<TextBlock Text="💡 İpucu: Graf üzerindeki düğümlere tıklayarak detaylı bilgi görebilirsiniz. Algoritmalar için Kaynak ve Hedef kutularını doldurun." 
-					   FontSize="11" Foreground="#657786" TextWrapping="Wrap"/>
+				<StackPanel Grid.Row="0" Margin="0,0,0,15">
+					<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+						<Border Background="{StaticResource PrimaryCyan}" CornerRadius="4" Width="30" Height="30" Margin="0,0,10,0">
+							<TextBlock Text="C" FontWeight="Bold" Foreground="#0F172A" HorizontalAlignment="Center" VerticalAlignment="Center" FontSize="18"/>
+						</Border>
+						<StackPanel>
+							<TextBlock Text="SOSYAL AĞ ANALİZİ" FontSize="18" FontWeight="Bold" Foreground="White"/>
+							<TextBlock Text="Sadık ve Ati Edition" FontSize="10" Foreground="{StaticResource TextMuted}"/>
+						</StackPanel>
+					</StackPanel>
+					<Separator Background="#334155" Margin="0,15"/>
+				</StackPanel>
+
+				<TabControl Grid.Row="1" Background="Transparent" BorderThickness="0">
+
+					<TabItem Header="ANALİZ">
+						<ScrollViewer VerticalScrollBarVisibility="Hidden" Margin="0,10,0,0">
+							<StackPanel>
+
+								<Border Background="#0F172A" CornerRadius="6" Padding="10" Margin="0,0,0,15" BorderBrush="#334155" BorderThickness="1">
+									<Grid>
+										<Grid.ColumnDefinitions>
+											<ColumnDefinition/>
+											<ColumnDefinition Width="Auto"/>
+											<ColumnDefinition/>
+										</Grid.ColumnDefinitions>
+										<StackPanel Grid.Column="0">
+											<TextBlock Text="KAYNAK" Foreground="{StaticResource TextMuted}" FontSize="9" Margin="0,0,0,2"/>
+											<TextBox Name="TxtSource" Margin="0"/>
+										</StackPanel>
+										<TextBlock Grid.Column="1" Text="➜" Foreground="#334155" FontSize="14" VerticalAlignment="Center" Margin="8,10,8,0"/>
+										<StackPanel Grid.Column="2">
+											<TextBlock Text="HEDEF" Foreground="{StaticResource TextMuted}" FontSize="9" Margin="0,0,0,2"/>
+											<TextBox Name="TxtTarget" Margin="0"/>
+										</StackPanel>
+									</Grid>
+								</Border>
+
+								<Expander Header="⚡ ROTA VE YOL ANALİZİ" IsExpanded="True">
+									<StackPanel Margin="0,10,0,0">
+										<Button Content="🚀 EN KISA YOL (Dijkstra)" Click="BtnRunDijkstra_Click" Style="{StaticResource BtnPrimary}"/>
+										<Button Content="⭐ SEZGİSEL YOL (A* Star)" Click="BtnRunAStar_Click" Style="{StaticResource BtnPrimary}"/>
+										<Grid Margin="0,5,0,0">
+											<Grid.ColumnDefinitions>
+												<ColumnDefinition/>
+												<ColumnDefinition Width="5"/>
+												<ColumnDefinition/>
+											</Grid.ColumnDefinitions>
+											<Button Grid.Column="0" Content="Genişlik (BFS)" Click="BtnRunBFS_Click" Style="{StaticResource BtnSecondary}"/>
+											<Button Grid.Column="2" Content="Derinlik (DFS)" Click="BtnRunDFS_Click" Style="{StaticResource BtnSecondary}"/>
+										</Grid>
+									</StackPanel>
+								</Expander>
+
+								<Expander Header="🧠 AĞ VE İSTİHBARAT">
+									<StackPanel Margin="0,10,0,0">
+										<Button Content="🔮 Yapay Zeka Önerisi" Click="BtnLinkPrediction_Click" Style="{StaticResource BtnSecondary}" Foreground="{StaticResource PrimaryPurple}" BorderBrush="{StaticResource PrimaryPurple}"/>
+										<Button Content="Köprü/Kritik Düğüm Analizi" Click="BtnBetweenness_Click" Style="{StaticResource BtnSecondary}"/>
+										<Button Content="Lider/Influencer Tespiti" Click="BtnAnalysis_Click" Style="{StaticResource BtnSecondary}"/>
+									</StackPanel>
+								</Expander>
+
+								<Expander Header="🎨 GÖRSELLEŞTİRME">
+									<StackPanel Margin="0,10,0,0">
+										<Button Content="Topluluk Analizi (Clusters)" Click="BtnComponents_Click" Style="{StaticResource BtnSecondary}"/>
+										<Button Content="Welsh-Powell Boyama" Click="BtnWelshPowell_Click" Style="{StaticResource BtnSecondary}"/>
+									</StackPanel>
+								</Expander>
+
+							</StackPanel>
+						</ScrollViewer>
+					</TabItem>
+
+					<TabItem Header="EDİTÖR">
+						<ScrollViewer VerticalScrollBarVisibility="Hidden" Margin="0,10,0,0">
+							<StackPanel>
+								<Expander Header="✏️ DÜĞÜM DÜZENLEME" IsExpanded="True">
+									<StackPanel Margin="0,10,0,0">
+										<TextBlock Text="İSİM" Foreground="{StaticResource TextMuted}" FontSize="9"/>
+										<TextBox Name="TxtNodeName"/>
+										<Grid>
+											<Grid.ColumnDefinitions>
+												<ColumnDefinition/>
+												<ColumnDefinition Width="10"/>
+												<ColumnDefinition/>
+											</Grid.ColumnDefinitions>
+											<StackPanel>
+												<TextBlock Text="AKTİVİTE" Foreground="{StaticResource TextMuted}" FontSize="9"/>
+												<TextBox Name="TxtAct" Text="0.5"/>
+											</StackPanel>
+											<StackPanel Grid.Column="2">
+												<TextBlock Text="ETKİLEŞİM" Foreground="{StaticResource TextMuted}" FontSize="9"/>
+												<TextBox Name="TxtInt" Text="5"/>
+											</StackPanel>
+										</Grid>
+										<TextBox Name="TxtConn" Text="0" Visibility="Collapsed"/>
+										<Button Content="KAYDET / GÜNCELLE" Click="BtnAddNode_Click" Style="{StaticResource BtnPrimary}"/>
+									</StackPanel>
+								</Expander>
+
+								<Expander Header="🔗 BAĞLANTI" IsExpanded="True">
+									<StackPanel Margin="0,10,0,0">
+										<Button Content="SEÇİLİLERİ BAĞLA" Click="BtnAddEdge_Click" Style="{StaticResource BtnSecondary}"/>
+										<TextBlock Text="* Kaynak ve Hedef kutularını doldurun." Foreground="{StaticResource TextMuted}" FontSize="9" FontStyle="Italic"/>
+									</StackPanel>
+								</Expander>
+
+								<Button Content="⛔ TÜMÜNÜ SİL" Click="BtnClear_Click" Style="{StaticResource BtnSecondary}" Foreground="{StaticResource Danger}" BorderBrush="{StaticResource Danger}" Margin="0,20,0,0"/>
+							</StackPanel>
+						</ScrollViewer>
+					</TabItem>
+
+					<TabItem Header="SİSTEM">
+						<ScrollViewer VerticalScrollBarVisibility="Hidden" Margin="0,10,0,0">
+							<StackPanel>
+								<Expander Header="📁 DOSYA" IsExpanded="True">
+									<StackPanel Margin="0,10,0,0">
+										<Grid>
+											<Grid.ColumnDefinitions>
+												<ColumnDefinition/>
+												<ColumnDefinition Width="5"/>
+												<ColumnDefinition/>
+											</Grid.ColumnDefinitions>
+											<Button Grid.Column="0" Content="CSV Yükle" Click="BtnLoadGraph_Click" Style="{StaticResource BtnSecondary}"/>
+											<Button Grid.Column="2" Content="JSON Yükle" Click="BtnLoadJson_Click" Style="{StaticResource BtnSecondary}"/>
+										</Grid>
+										<Button Content="💾 Dışa Aktar" Click="BtnExport_Click" Style="{StaticResource BtnSecondary}"/>
+										<Button Content="📊 HTML Rapor" Click="BtnReport_Click" Style="{StaticResource BtnSecondary}"/>
+									</StackPanel>
+								</Expander>
+
+								<Expander Header="💾 SNAPSHOT YEDEK">
+									<StackPanel Margin="0,10,0,0">
+										<Grid Margin="0,0,0,5">
+											<Grid.ColumnDefinitions>
+												<ColumnDefinition Width="*"/>
+												<ColumnDefinition Width="5"/>
+												<ColumnDefinition Width="Auto"/>
+											</Grid.ColumnDefinitions>
+											<TextBox Name="TxtBackupName" Grid.Column="0" Tag="Yedek..." Margin="0"/>
+											<Button Grid.Column="2" Content="AL" Click="BtnSaveBackup_Click" Background="{StaticResource Success}" BorderThickness="0" Foreground="White" Padding="10,5" Margin="0,0,0,10"/>
+										</Grid>
+										<Button Content="Yedekleri Yönet" Click="BtnShowBackups_Click" Style="{StaticResource BtnSecondary}"/>
+										<Border Name="BackupListPanel" Background="#0F172A" Padding="5" CornerRadius="4" Margin="0,5,0,0" Visibility="Collapsed" MaxHeight="200" BorderBrush="#334155" BorderThickness="1">
+											<ScrollViewer>
+												<StackPanel Name="BackupListContainer"/>
+											</ScrollViewer>
+										</Border>
+									</StackPanel>
+								</Expander>
+
+								<Expander Header="⚡ SİMÜLASYON">
+									<StackPanel Margin="0,10,0,0">
+										<Button Name="BtnSimulate" Content="▶️ VİRÜS YAYILIMI" Click="BtnSimulate_Click" Style="{StaticResource BtnPrimary}" Background="{StaticResource PrimaryPurple}"/>
+										<Button Content="🎲 Rastgele Ağ (Demo)" Click="BtnRandomGraph_Click" Style="{StaticResource BtnSecondary}"/>
+										<Button Content="↩️ Geri Al" Click="BtnUndo_Click" Style="{StaticResource BtnSecondary}"/>
+									</StackPanel>
+								</Expander>
+							</StackPanel>
+						</ScrollViewer>
+					</TabItem>
+				</TabControl>
+
+				<TextBlock Grid.Row="2" Text="v6.0 Elite" Foreground="#334155" FontSize="10" HorizontalAlignment="Center"/>
+			</Grid>
 		</Border>
+
+		<Grid Grid.Column="1">
+			<Grid.Resources>
+				<DrawingBrush x:Key="GridPattern" TileMode="Tile" Viewport="0,0,50,50" ViewportUnits="Absolute" Opacity="0.04">
+					<DrawingBrush.Drawing>
+						<GeometryDrawing>
+							<GeometryDrawing.Pen>
+								<Pen Brush="White" Thickness="0.5"/>
+							</GeometryDrawing.Pen>
+							<GeometryDrawing.Geometry>
+								<RectangleGeometry Rect="0,0,50,50"/>
+							</GeometryDrawing.Geometry>
+						</GeometryDrawing>
+					</DrawingBrush.Drawing>
+				</DrawingBrush>
+			</Grid.Resources>
+			<Border Background="#0F172A">
+				<Border Background="{DynamicResource GridPattern}"/>
+			</Border>
+
+			<Border Name="GraphContainer" Margin="0"/>
+
+			<Border HorizontalAlignment="Center" VerticalAlignment="Top" Margin="0,20,0,0"
+                    Background="#CC1E293B" BorderBrush="#334155" BorderThickness="1" CornerRadius="12" Padding="15,8">
+				<Border.Effect>
+					<DropShadowEffect Color="Black" BlurRadius="20" ShadowDepth="5" Opacity="0.4"/>
+				</Border.Effect>
+				<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+					<Grid Width="220" Margin="0,0,15,0">
+						<TextBox Name="TxtSearch" Margin="0" KeyDown="TxtSearch_KeyDown" BorderThickness="0" Background="Transparent" Foreground="White" VerticalAlignment="Center" Padding="5,0"/>
+						<TextBlock Text="Hedef Ara..." IsHitTestVisible="False" Foreground="#64748B" VerticalAlignment="Center" Margin="5,0,0,0">
+							<TextBlock.Style>
+								<Style TargetType="TextBlock">
+									<Setter Property="Visibility" Value="Collapsed"/>
+									<Style.Triggers>
+										<DataTrigger Binding="{Binding Text, ElementName=TxtSearch}" Value="">
+											<Setter Property="Visibility" Value="Visible"/>
+										</DataTrigger>
+									</Style.Triggers>
+								</Style>
+							</TextBlock.Style>
+						</TextBlock>
+					</Grid>
+					<Button Content="🔍" Click="BtnSearch_Click" Style="{StaticResource BtnSecondary}" Width="30" Height="30" Padding="0" Margin="0"/>
+
+					<Rectangle Width="1" Fill="#334155" Margin="15,4"/>
+
+					<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+						<TextBlock Text="Filtre" Foreground="{StaticResource TextMuted}" FontSize="11" VerticalAlignment="Center" Margin="0,0,10,0"/>
+						<Slider Name="FilterSlider"
+        Minimum="0"
+        Maximum="1"
+        Value="0"
+        TickFrequency="0.01"
+        IsSnapToTickEnabled="True"
+        SmallChange="0.01"
+        LargeChange="0.1"
+        ValueChanged="FilterSlider_ValueChanged"
+        VerticalAlignment="Center"/>
+						<TextBlock Text="{Binding Value, ElementName=FilterSlider, StringFormat=N2}" Foreground="White" FontSize="11" Width="30" TextAlignment="Right" VerticalAlignment="Center"/>
+					</StackPanel>
+				</StackPanel>
+			</Border>
+
+			<Border Name="LegendPanel" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,30,80"
+                    Background="#F21E293B" BorderBrush="{StaticResource PrimaryCyan}" BorderThickness="0,0,0,3" CornerRadius="8" Padding="15" Visibility="Collapsed" Width="280">
+				<Border.RenderTransform>
+					<TranslateTransform Y="0"/>
+				</Border.RenderTransform>
+				<Border.Effect>
+					<DropShadowEffect Color="Black" BlurRadius="20" ShadowDepth="5" Opacity="0.5"/>
+				</Border.Effect>
+				<StackPanel>
+					<Grid Margin="0,0,0,10">
+						<TextBlock Name="LegendTitle" Text="SONUÇ" Foreground="{StaticResource PrimaryCyan}" FontWeight="Bold" FontSize="14"/>
+						<Button Content="✕" HorizontalAlignment="Right" Background="Transparent" Foreground="#64748B" BorderThickness="0" Padding="0" Margin="0" Click="BtnCloseLegend_Click" ToolTip="Kapat" Width="20" Height="20"/>
+					</Grid>
+					<TextBlock Name="LegendText" Text="..." Foreground="#E2E8F0" FontSize="12" TextWrapping="Wrap" LineHeight="18"/>
+				</StackPanel>
+			</Border>
+
+			<Border VerticalAlignment="Bottom" Background="#CC0F172A" BorderBrush="#334155" BorderThickness="0,1,0,0" Padding="15,6">
+				<Grid>
+					<StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+						<TextBlock Name="TxtStatusIcon" Text="🟢" Margin="0,0,8,0" VerticalAlignment="Center"/>
+						<TextBlock Text="SİSTEM: " Foreground="{StaticResource TextMuted}" FontSize="11" FontWeight="Bold" VerticalAlignment="Center"/>
+						<TextBlock Name="TxtStatus" Text="Hazır" Foreground="White" FontSize="11" Margin="5,0,0,0" VerticalAlignment="Center"/>
+					</StackPanel>
+					<TextBlock Name="TxtDetails" Text="0 Düğüm | 0 Bağlantı" Foreground="{StaticResource TextMuted}" FontSize="11" HorizontalAlignment="Right" VerticalAlignment="Center"/>
+				</Grid>
+			</Border>
+		</Grid>
 	</Grid>
 </Window>
